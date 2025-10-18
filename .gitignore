@@ -1,0 +1,18 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Node / Expo
+node_modules/
+.expo/
+.expo-shared/
+dist/
+build/
+
+# Environment / system files
+.env
+.env.save
+.DS_Store
+*.log
