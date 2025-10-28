@@ -17,11 +17,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { loginUser, getCurrentUser } from "../api/auth";
 import { AuthContext } from "../context/AuthContext";
+import { useNavigation } from "@react-navigation/native";
 
 const { width, height } = Dimensions.get("window");
 
 const LoginScreen = () => {
   const { login } = useContext(AuthContext);
+  const navigation = useNavigation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -198,7 +200,12 @@ const LoginScreen = () => {
               <View style={styles.footer}>
                 <Text style={styles.footerText}>
                   Don't have an account?{" "}
-                  <Text style={styles.linkText}>Sign up</Text>
+                  <Text 
+                    style={styles.linkText}
+                    onPress={() => navigation.navigate("Signup" as never)}
+                  >
+                    Sign up
+                  </Text>
                 </Text>
               </View>
           </Animated.View>
@@ -220,8 +227,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 40,
+    paddingTop: 40,
+    paddingBottom: 60,
   },
   headerContainer: {
     alignItems: "flex-start",

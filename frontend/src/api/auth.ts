@@ -18,7 +18,16 @@ interface SignupData {
   phone?: string;
 }
 
-export async function signupUser(userData: SignupData) {
+interface SignupResponse {
+  access_token: string;
+  token_type: string;
+  user: {
+    email: string;
+    name: string;
+  };
+}
+
+export async function signupUser(userData: SignupData): Promise<SignupResponse> {
   const response = await api.post("/auth/signup", userData);
   return response.data;
 }

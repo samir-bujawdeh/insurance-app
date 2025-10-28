@@ -16,18 +16,40 @@ security = HTTPBearer()
 def test_route():
     return {"message": "Auth routes working!"}
 
-@router.post("/signup", response_model=schemas.UserOut)
+@router.post("/signup")
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(models.User).filter(models.User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_pw = utils.hash_password(user.password)
-    new_user = models.User(email=user.email, password_hash=hashed_pw, name=user.name, phone=user.phone)
+    
+    # Get the next user_id manually
+    max_user_id = db.query(models.User.user_id).order_by(models.User.user_id.desc()).first()
+    next_user_id = (max_user_id[0] + 1) if max_user_id else 1
+    
+    new_user = models.User(
+        user_id=next_user_id,
+        email=user.email, 
+        password_hash=hashed_pw, 
+        name=user.name, 
+        phone=user.phone
+    )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return new_user
+    
+    # Create access token for the new user
+    access_token = utils.create_access_token({"sub": new_user.email})
+    
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user": {
+            "email": new_user.email,
+            "name": new_user.name
+        }
+    }
 
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,10 @@ import {
   SafeAreaView,
   Animated,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView as SafeAreaViewContext } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { CommonActions } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -19,11 +20,15 @@ const HomeScreen = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   
-  // Animation values
+  // Animation values for content
   const quickActionsOpacity = useRef(new Animated.Value(0)).current;
   const quickActionsTranslateY = useRef(new Animated.Value(30)).current;
   const bannerOpacity = useRef(new Animated.Value(0)).current;
   const bannerTranslateY = useRef(new Animated.Value(20)).current;
+  
+  // Animation values for header opacity based on scroll
+  const headerTextOpacity = useRef(new Animated.Value(1)).current;
+  const headerIconOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     // Animate quick actions
@@ -55,6 +60,33 @@ const HomeScreen = () => {
     }, 100);
   }, []);
 
+  // Handle scroll events to animate header opacity
+  const handleScroll = (event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    const headerHeight = 90
+    
+    // Calculate opacity based on scroll position
+    // Start fading when scroll reaches 60px, fully fade at 120px
+    const fadeStart = 8;
+    const fadeEnd = headerHeight;
+    
+    if (scrollY <= fadeStart) {
+      // Header fully visible
+      headerTextOpacity.setValue(1);
+      headerIconOpacity.setValue(1);
+    } else if (scrollY >= fadeEnd) {
+      // Header fully faded
+      headerTextOpacity.setValue(0);
+      headerIconOpacity.setValue(0);
+    } else {
+      // Fade between fadeStart and fadeEnd
+      const fadeProgress = (scrollY - fadeStart) / (fadeEnd - fadeStart);
+      const opacity = 1 - fadeProgress;
+      headerTextOpacity.setValue(opacity);
+      headerIconOpacity.setValue(opacity);
+    }
+  };
+
   const QuickActionCard = React.memo(
     ({
       icon,
@@ -85,33 +117,54 @@ const HomeScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaViewContext style={styles.safeArea} edges={['left', 'right']}>
+      {/* Full Background Gradient */}
+      <LinearGradient
+        colors={["#667eea", "#764ba2"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.fullBackground}
       >
-        {/* Header Section */}
-        <View style={styles.headerContainer}>
-          <View style={styles.header}>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.greeting}>Hello,</Text>
-              <Text style={styles.userName}>{user?.name || "User"}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => navigation.navigate("Profile")}
-            >
-              <View style={styles.profileAvatar}>
-                <Ionicons name="person" size={20} color="#007AFF" />
+        {/* Fixed Header Content */}
+        <View style={styles.fixedHeader}>
+          <View style={styles.headerContent}>
+            <Animated.View style={[styles.headerTextContainer, { opacity: headerTextOpacity }]}>
+              <Text style={styles.headerGreeting}>Welcome</Text>
+              <Text style={styles.headerUserName}>{user?.name || "User"}</Text>
+            </Animated.View>
+            <Animated.View style={{ opacity: headerIconOpacity }}>
+              <View style={styles.headerProfileAvatar}>
+                <Ionicons name="person" size={24} color="#FFFFFF" />
               </View>
-            </TouchableOpacity>
+            </Animated.View>
           </View>
+        </View>
 
-          {/* Cover Card with gradient */}
+        {/* Invisible Profile Button - Top Z-Index for Touch Events */}
+        <TouchableOpacity
+          style={styles.invisibleProfileButton}
+          onPress={() => navigation.navigate("Profile")}
+          activeOpacity={1}
+        />
+
+        {/* Scrollable Content */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          alwaysBounceVertical={true}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        >
+          {/* White Content Card */}
+          <View style={styles.contentCard}>
+        {/* Cover Card with gradient */}
+        <View style={styles.coverCardContainer}>
           <LinearGradient
             colors={["#667eea", "#764ba2"]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            end={{ x: 1, y: 0 }}
             style={styles.coverCard}
           >
             <View style={styles.coverCardContent}>
@@ -206,8 +259,13 @@ const HomeScreen = () => {
             </View>
           </TouchableOpacity>
         </Animated.View>
-      </ScrollView>
-    </SafeAreaView>
+          </View>
+        </ScrollView>
+        
+        {/* Bottom white section positioned absolutely */}
+        <View style={styles.bottomWhiteSection} />
+      </LinearGradient>
+    </SafeAreaViewContext>
   );
 };
 
@@ -215,51 +273,79 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#F5F7FA",
+    paddingTop: 0,
+    paddingBottom: 0, // No bottom padding
+  },
+  fullBackground: {
+    flex: 1,
+  },
+  fixedHeader: {
+    position: 'absolute',
+    top: 20, // Moved down from 0
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 50, // Account for status bar
+    paddingBottom: 20,
+    height: 120, // Reduced height to match scroll calculations
+    justifyContent: 'flex-end', // Changed from 'center' to push content down
+    zIndex: 5, // Lower than scroll view so white card can cover it
+    elevation: 5, // Android elevation
   },
   scrollView: {
     flex: 1,
+    zIndex: 10, // Higher than header to cover it
+    elevation: 10, // Android elevation
   },
-  headerContainer: {
+  contentCard: {
     backgroundColor: "#FFFFFF",
-    paddingBottom: 24,
+    borderTopLeftRadius: 30, // Increased from 20
+    borderTopRightRadius: 30, // Increased from 20
+    marginTop: 140, // More space for header
+    minHeight: '100%', // Ensure it covers the full height
   },
-  header: {
+  scrollContent: {
+    paddingTop: 20,
+    paddingBottom: 100, // Extra space to scroll above navigation bar
+    paddingHorizontal: 0,
+  },
+  headerContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 20,
   },
   headerTextContainer: {
     flex: 1,
   },
-  greeting: {
-    fontSize: 16,
-    color: "#8E8E93",
+  headerGreeting: {
+    fontSize: 18, // Increased from 16
+    color: "rgba(255,255,255,0.9)",
     marginBottom: 4,
   },
-  userName: {
-    fontSize: 28,
+  headerUserName: {
+    fontSize: 28, // Increased from 24
     fontWeight: "700",
-    color: "#1C1C1E",
+    color: "#FFFFFF",
   },
-  iconButton: {
-    position: "relative",
-    padding: 4,
+  headerProfileButton: {
+    padding: 8, // Increased padding for better touch area
+    borderRadius: 30, // Make it more touchable
   },
-  profileAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#E3F2FD",
+  headerProfileAvatar: {
+    width: 52, // Increased from 48
+    height: 52, // Increased from 48
+    borderRadius: 26, // Increased from 24
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#BBDEFB",
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  coverCardContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   coverCard: {
-    marginHorizontal: 20,
-    marginTop: 24,
     borderRadius: 20,
     padding: 24,
   },
@@ -375,6 +461,26 @@ const styles = StyleSheet.create({
   },
   promoIcon: {
     opacity: 0.3,
+  },
+  bottomWhiteSection: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    height: 200, // Height to cover when scrolling down
+    zIndex: 5, // Same as header, below scroll content
+    elevation: 5,
+  },
+  invisibleProfileButton: {
+    position: 'absolute',
+    top: 85, // Adjusted to align with center line of user name
+    right: 20,
+    width: 68, // Width to cover the profile button area
+    height: 68, // Height to cover the profile button area
+    zIndex: 20, // Highest z-index to capture touch events
+    elevation: 20,
+    backgroundColor: 'transparent', // Invisible
   },
 });
 
