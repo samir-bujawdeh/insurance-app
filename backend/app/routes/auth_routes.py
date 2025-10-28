@@ -23,7 +23,7 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_pw = utils.hash_password(user.password)
-    new_user = models.User(email=user.email, hashed_password=hashed_pw, full_name=user.full_name)
+    new_user = models.User(email=user.email, password_hash=hashed_pw, name=user.name, phone=user.phone)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -32,7 +32,7 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
-    if not user or not utils.verify_password(form_data.password, user.hashed_password):
+    if not user or not utils.verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     access_token = utils.create_access_token({"sub": user.email})
@@ -51,4 +51,4 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     user = db.query(models.User).filter(models.User.email == email).first()
-    return {"email": user.email, "full_name": user.full_name}
+    return {"email": user.email, "name": user.name}

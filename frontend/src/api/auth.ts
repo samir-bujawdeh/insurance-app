@@ -6,17 +6,37 @@ interface LoginResponse {
   token_type: string;
 }
 
+interface User {
+  email: string;
+  name: string;
+}
+
+interface SignupData {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+}
+
+export async function signupUser(userData: SignupData) {
+  const response = await api.post("/auth/signup", userData);
+  return response.data;
+}
+
 export async function loginUser(email: string, password: string): Promise<LoginResponse> {
+  // Send form data specifically for login
   const data = new URLSearchParams();
   data.append("username", email);
   data.append("password", password);
 
-  const response = await api.post<LoginResponse>("/auth/login", data);
+  const response = await api.post<LoginResponse>("/auth/login", data, {
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  });
   await SecureStore.setItemAsync("access_token", response.data.access_token);
   return response.data;
 }
 
-export async function getCurrentUser() {
+export async function getCurrentUser(): Promise<User> {
   const token = await SecureStore.getItemAsync("access_token");
   if (!token) throw new Error("No token found");
 

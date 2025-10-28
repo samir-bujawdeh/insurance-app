@@ -1,16 +1,22 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, SafeAreaView } from "react-native";
 
 const PaymentsScreen = () => (
-  <View style={styles.container}>
-    <Text style={styles.title}>💳 Payments</Text>
-    <Text style={styles.subtitle}>View and manage your insurance payments here.</Text>
-  </View>
+  <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <Text style={styles.title}>💳 Payments</Text>
+      <Text style={styles.subtitle}>View and manage your insurance payments here.</Text>
+    </View>
+  </SafeAreaView>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 22, fontWeight: "600" },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  container: { flex: 1, backgroundColor: "#F8F9FA", alignItems: "center", justifyContent: "center" },
+  title: { fontSize: 22, fontWeight: "600", marginTop: 20 },
   subtitle: { fontSize: 16, color: "gray", marginTop: 6 },
 });
 

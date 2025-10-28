@@ -1,11 +1,16 @@
-import React, { createContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { getCurrentUser } from "../api/auth";
 
+interface User {
+  email: string;
+  name: string;
+}
+
 interface AuthContextType {
-  user: any;
+  user: User | null;
   isLoading: boolean;
-  login: (userData: any) => void;
+  login: (userData: User) => void;
   logout: () => void;
 }
 
@@ -17,7 +22,7 @@ export const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // 🧠 Try to load stored token and fetch user info on app start
@@ -38,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadUser();
   }, []);
 
-  const login = (userData: any) => setUser(userData);
+  const login = (userData: User) => setUser(userData);
 
   const logout = async () => {
     await SecureStore.deleteItemAsync("access_token");
@@ -51,3 +56,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = () => useContext(AuthContext);

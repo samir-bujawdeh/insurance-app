@@ -1,23 +1,29 @@
 import React, { useContext } from "react";
-import { View, Text, Button, StyleSheet } from "react-native";
+import { View, Text, Button, StyleSheet, SafeAreaView } from "react-native";
 import { AuthContext } from "../context/AuthContext";
 
 const ProfileScreen = () => {
   const { user, logout } = useContext(AuthContext);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>👤 Profile</Text>
-      <Text>Email: {user?.email}</Text>
-      <Text>Full Name: {user?.full_name}</Text>
-      <Button title="Logout" onPress={logout} />
-    </View>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Text style={styles.title}>👤 Profile</Text>
+        <Text>Email: {user?.email}</Text>
+        <Text>Full Name: {user?.full_name}</Text>
+        <Button title="Logout" onPress={logout} />
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 22, marginBottom: 10 },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  container: { flex: 1, backgroundColor: "#F8F9FA", alignItems: "center", justifyContent: "center" },
+  title: { fontSize: 22, marginBottom: 10, marginTop: 20 },
 });
 
 export default ProfileScreen;
