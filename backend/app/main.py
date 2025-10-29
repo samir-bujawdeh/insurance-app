@@ -39,6 +39,7 @@ def init_and_seed():
     Base.metadata.create_all(bind=engine)
     db: Session = SessionLocal()
     try:
+        print("Starting database seeding...")
         # Seed providers
         if db.query(models.Provider).count() == 0:
             providers = [
@@ -112,5 +113,93 @@ def init_and_seed():
             ]
             db.add_all(documents)
             db.commit()
+
+        # Seed demo user (if not exists)
+        demo_user = db.query(models.User).filter(models.User.email == "demo@example.com").first()
+        if not demo_user:
+            print("Creating demo user...")
+            demo_user = models.User(
+                name="Demo User",
+                email="demo@example.com",
+                phone="+1-555-0123",
+                password_hash="demo_password_hash"  # In production, properly hash this
+            )
+            db.add(demo_user)
+            db.flush()  # Use flush instead of commit to get the ID
+            db.refresh(demo_user)
+            print(f"Demo user created with ID: {demo_user.user_id}")
+        else:
+            print(f"Demo user already exists with ID: {demo_user.user_id}")
+
+        # Seed demo user policies
+        if db.query(models.UserPolicy).count() == 0:
+            policies = db.query(models.InsurancePolicy).all()
+            demo_user = db.query(models.User).filter(models.User.email == "demo@example.com").first()
+            
+            if demo_user and policies:
+                from datetime import date, datetime, timedelta
+                
+                # Create demo user policies with different statuses
+                demo_policies = [
+                    # Active Auto Insurance
+                    models.UserPolicy(
+                        user_id=demo_user.user_id,
+                        policy_id=policies[0].policy_id,  # First policy (Auto)
+                        start_date=date.today() - timedelta(days=30),
+                        end_date=date.today() + timedelta(days=335),
+                        policy_number="AUTO-2024-001",
+                        premium_paid=99.99,
+                        status=models.UserPolicyStatus.active,
+                        issued_at=datetime.utcnow() - timedelta(days=30)
+                    ),
+                    # Active Home Insurance
+                    models.UserPolicy(
+                        user_id=demo_user.user_id,
+                        policy_id=policies[4].policy_id,  # Home insurance from first provider
+                        start_date=date.today() - timedelta(days=60),
+                        end_date=date.today() + timedelta(days=305),
+                        policy_number="HOME-2024-002",
+                        premium_paid=199.99,
+                        status=models.UserPolicyStatus.active,
+                        issued_at=datetime.utcnow() - timedelta(days=60)
+                    ),
+                    # Pending Payment Health Insurance
+                    models.UserPolicy(
+                        user_id=demo_user.user_id,
+                        policy_id=policies[8].policy_id,  # Health insurance from first provider
+                        policy_number="HEALTH-2024-003",
+                        premium_paid=0,
+                        status=models.UserPolicyStatus.pending_payment,
+                        issued_at=datetime.utcnow() - timedelta(days=5)
+                    ),
+                    # Expired Life Insurance
+                    models.UserPolicy(
+                        user_id=demo_user.user_id,
+                        policy_id=policies[12].policy_id,  # Life insurance from first provider
+                        start_date=date.today() - timedelta(days=400),
+                        end_date=date.today() - timedelta(days=40),
+                        policy_number="LIFE-2023-004",
+                        premium_paid=129.99,
+                        status=models.UserPolicyStatus.expired,
+                        issued_at=datetime.utcnow() - timedelta(days=400)
+                    ),
+                    # Another Active Policy (Auto from different provider)
+                    models.UserPolicy(
+                        user_id=demo_user.user_id,
+                        policy_id=policies[1].policy_id,  # Auto from second provider
+                        start_date=date.today() - timedelta(days=15),
+                        end_date=date.today() + timedelta(days=350),
+                        policy_number="AUTO-2024-005",
+                        premium_paid=79.99,
+                        status=models.UserPolicyStatus.active,
+                        issued_at=datetime.utcnow() - timedelta(days=15)
+                    ),
+                ]
+                
+                db.add_all(demo_policies)
+                db.commit()
+    except Exception as e:
+        print(f"Error during seeding: {e}")
+        db.rollback()
     finally:
         db.close()

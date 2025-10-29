@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   View,
   Animated,
@@ -27,9 +27,27 @@ const isDarkMode = Appearance.getColorScheme() === "dark";
 const TabNavigator = () => {
   const indicatorPosition = useRef(new Animated.Value(0)).current;
   const currentTabIndex = useRef(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Initial fade in when component mounts
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const handleTabPress = (routeName: string, navigation: any) => {
+    // Reset opacity to 0.5, then fade in
+    fadeAnim.setValue(0.5);
     navigation.navigate(routeName);
+    
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
   };
 
   const renderTabBar = ({ state, descriptors, navigation }: any) => {
@@ -101,7 +119,7 @@ const TabNavigator = () => {
                       : (`${iconMap[route.name]}-outline` as any)
                   }
                   size={24}
-                  color={isFocused ? "#007AFF" : "#8E8E93"}
+                  color={isFocused ? "#764ba2" : "#8E8E93"}
                 />
               </Pressable>
             );
@@ -112,20 +130,25 @@ const TabNavigator = () => {
   };
 
   return (
-    <Tab.Navigator
-      screenOptions={{ headerShown: false }}
-      tabBar={renderTabBar}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Policies" component={PoliciesScreen} />
-      <Tab.Screen name="+" component={MarketplaceScreen} />
-      <Tab.Screen name="Claims" component={ClaimsScreen} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} />
-    </Tab.Navigator>
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+      <Tab.Navigator
+        screenOptions={{ headerShown: false }}
+        tabBar={renderTabBar}
+      >
+        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="Policies" component={PoliciesScreen} />
+        <Tab.Screen name="+" component={MarketplaceScreen} />
+        <Tab.Screen name="Claims" component={ClaimsScreen} />
+        <Tab.Screen name="Notifications" component={NotificationsScreen} />
+      </Tab.Navigator>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   tabBarContainer: {
     position: "absolute",
     bottom: 30,
@@ -168,7 +191,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.4)",
-    shadowColor: "#007AFF",
+    shadowColor: "#764ba2",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,

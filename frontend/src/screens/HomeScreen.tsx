@@ -159,23 +159,6 @@ const HomeScreen = () => {
         >
           {/* White Content Card */}
           <View style={styles.contentCard}>
-        {/* Cover Card with gradient */}
-        <View style={styles.coverCardContainer}>
-          <LinearGradient
-            colors={["#667eea", "#764ba2"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.coverCard}
-          >
-            <View style={styles.coverCardContent}>
-              <View style={styles.coverTextContainer}>
-                <Text style={styles.coverTitle}>Total Coverage</Text>
-                <Text style={styles.coverAmount}>$250,000</Text>
-                <Text style={styles.coverSubtext}>Across 3 active policies</Text>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
 
         {/* Quick Actions Section with animation */}
         <Animated.View
@@ -187,42 +170,41 @@ const HomeScreen = () => {
             },
           ]}
         >
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
             <QuickActionCard
-              icon="document-text"
-              title="My Policies"
-              subtitle="View & manage"
-              color="#2196F3"
+              icon="medical"
+              title="Health"
+              subtitle="Health insurance"
+              color="#F44336"
               onPress={() =>
                 navigation.navigate("Main", { screen: "Policies" })
               }
             />
             <QuickActionCard
-              icon="clipboard"
-              title="File Claim"
-              subtitle="Get started"
+              icon="car"
+              title="Motor"
+              subtitle="Vehicle insurance"
               color="#FF9800"
               onPress={() =>
-                navigation.navigate("Main", { screen: "Claims" })
+                navigation.navigate("Main", { screen: "Policies" })
               }
             />
             <QuickActionCard
-              icon="card"
-              title="Make Payment"
-              subtitle="Pay premium"
+              icon="airplane"
+              title="Travel"
+              subtitle="Travel protection"
               color="#4CAF50"
               onPress={() =>
                 navigation.navigate("Main", { screen: "Policies" })
               }
             />
             <QuickActionCard
-              icon="add-circle"
-              title="Buy Policy"
-              subtitle="Get covered"
-              color="#9C27B0"
+              icon="ellipsis-horizontal"
+              title="More"
+              subtitle="Other options"
+              color="#2196F3"
               onPress={() =>
-                navigation.navigate("Main", { screen: "+" })
+                navigation.navigate("Main", { screen: "Marketplace" })
               }
             />
           </View>
@@ -241,17 +223,17 @@ const HomeScreen = () => {
           <TouchableOpacity style={styles.promoBanner}>
             <View style={styles.promoContent}>
               <View style={styles.promoTextContainer}>
-                <Text style={styles.promoTitle}>Special Offer</Text>
+                <Text style={styles.promoTitle}>Compare Feature</Text>
                 <Text style={styles.promoSubtitle}>
-                  Save up to 25% on Travel Insurance
+                  Compare insurance policies and find the best deals
                 </Text>
                 <View style={styles.promoButton}>
-                  <Text style={styles.promoButtonText}>Learn More</Text>
+                  <Text style={styles.promoButtonText}>Try Now</Text>
                   <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
                 </View>
               </View>
               <Ionicons
-                name="airplane"
+                name="analytics"
                 size={64}
                 color="#1976D2"
                 style={styles.promoIcon}
@@ -318,12 +300,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerGreeting: {
-    fontSize: 18, // Increased from 16
+    fontSize: 22, // Increased from 16
     color: "rgba(255,255,255,0.9)",
     marginBottom: 4,
   },
   headerUserName: {
-    fontSize: 28, // Increased from 24
+    fontSize: 34, // Increased from 24
     fontWeight: "700",
     color: "#FFFFFF",
   },
@@ -340,37 +322,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.3)",
-  },
-  coverCardContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  coverCard: {
-    borderRadius: 20,
-    padding: 24,
-  },
-  coverCardContent: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  coverTextContainer: {
-    alignItems: "center",
-  },
-  coverTitle: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
-    marginBottom: 8,
-  },
-  coverAmount: {
-    fontSize: 36,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 4,
-  },
-  coverSubtext: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
   },
   section: {
     paddingHorizontal: 20,
@@ -474,10 +425,10 @@ const styles = StyleSheet.create({
   },
   invisibleProfileButton: {
     position: 'absolute',
-    top: 85, // Adjusted to align with center line of user name
-    right: 20,
-    width: 68, // Width to cover the profile button area
-    height: 68, // Height to cover the profile button area
+    top: 70, // Moved up
+    right: 20, // Moved to the right
+    width: 50, // Made smaller
+    height: 50, // Made smaller
     zIndex: 20, // Highest z-index to capture touch events
     elevation: 20,
     backgroundColor: 'transparent', // Invisible

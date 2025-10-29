@@ -64,7 +64,7 @@ const ProfileScreen = () => {
     >
       <View style={styles.profileItemLeft}>
         <View style={styles.iconContainer}>
-          <Ionicons name={icon as any} size={24} color="#2196F3" />
+          <Ionicons name={icon as any} size={24} color="#764ba2" />
         </View>
         <View style={styles.profileItemText}>
           <Text style={styles.profileItemTitle}>{title}</Text>
@@ -92,7 +92,7 @@ const ProfileScreen = () => {
         >
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Ionicons name="person" size={40} color="#2196F3" />
+              <Ionicons name="person" size={40} color="#764ba2" />
             </View>
           </View>
           <Text style={styles.userName}>{user?.name || "User"}</Text>
@@ -218,11 +218,11 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#F3E5F5",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    borderColor: "#2196F3",
+    borderColor: "#764ba2",
   },
   userName: {
     fontSize: 24,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#F3E5F5",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,

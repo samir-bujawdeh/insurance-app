@@ -132,7 +132,7 @@ const LoginScreen = () => {
                 <Ionicons 
                   name="mail-outline" 
                   size={24} 
-                  color={emailFocused ? "#2196F3" : "#999"} 
+                  color={emailFocused ? "#764ba2" : "#999"} 
                   style={styles.inputIcon}
                 />
                 <TextInput
@@ -157,7 +157,7 @@ const LoginScreen = () => {
                 <Ionicons 
                   name="lock-closed-outline" 
                   size={24} 
-                  color={passwordFocused ? "#2196F3" : "#999"} 
+                  color={passwordFocused ? "#764ba2" : "#999"} 
                   style={styles.inputIcon}
                 />
                 <TextInput
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#2196F3",
+    borderColor: "#764ba2",
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 4,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   inputContainerFocused: {
     backgroundColor: "#F5F7FA",
     borderWidth: 1,
-    borderColor: "#2196F3",
+    borderColor: "#764ba2",
   },
   inputIcon: {
     marginRight: 12,
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     borderRadius: 12,
-    backgroundColor: "#2196F3",
+    backgroundColor: "#764ba2",
     paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
   },
   linkText: {
-    color: "#2196F3",
+    color: "#764ba2",
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
   },

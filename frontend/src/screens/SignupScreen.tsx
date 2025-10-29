@@ -161,7 +161,7 @@ const SignupScreen = () => {
         <Ionicons 
           name={icon as any} 
           size={24} 
-          color={isFocused ? "#2196F3" : "#999"} 
+          color={isFocused ? "#764ba2" : "#999"} 
           style={styles.inputIcon}
         />
         <TextInput
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   inputContainerFocused: {
     backgroundColor: "#F5F7FA",
     borderWidth: 1,
-    borderColor: "#2196F3",
+    borderColor: "#764ba2",
   },
   inputIcon: {
     marginRight: 12,
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   },
   signupButton: {
     borderRadius: 12,
-    backgroundColor: "#2196F3",
+    backgroundColor: "#764ba2",
     paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
   },
   linkText: {
-    color: "#2196F3",
+    color: "#764ba2",
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
   },
