@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -34,23 +34,21 @@ def get_user_documents(user_id: int, db: Session = Depends(get_db)):
 
 @router.post("/upload", response_model=schemas.UserDocumentOut)
 def upload_document(
-    user_id: int,
-    doc_id: int,
-    file_url: str,
+    payload: schemas.UserDocumentCreate,
     db: Session = Depends(get_db)
 ):
     """Upload a document for a user"""
     # Verify document type exists
     doc_type = db.query(models.RequiredDocument).filter(
-        models.RequiredDocument.doc_id == doc_id
+        models.RequiredDocument.doc_id == payload.doc_id
     ).first()
     if not doc_type:
         raise HTTPException(status_code=404, detail="Document type not found")
     
     user_document = models.UserDocument(
-        user_id=user_id,
-        doc_id=doc_id,
-        file_url=file_url
+        user_id=payload.user_id,
+        doc_id=payload.doc_id,
+        file_url=payload.file_url
     )
     db.add(user_document)
     db.commit()
@@ -59,7 +57,7 @@ def upload_document(
 
 
 @router.put("/{user_doc_id}/verify", response_model=schemas.UserDocumentOut)
-def verify_document(user_doc_id: int, verified: bool, db: Session = Depends(get_db)):
+def verify_document(user_doc_id: int, verified: bool = Body(..., embed=True), db: Session = Depends(get_db)):
     """Mark a document as verified or not"""
     user_document = db.query(models.UserDocument).filter(
         models.UserDocument.user_doc_id == user_doc_id

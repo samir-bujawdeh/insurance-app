@@ -7,6 +7,7 @@ interface LoginResponse {
 }
 
 interface User {
+  user_id: number;
   email: string;
   name: string;
 }
@@ -22,6 +23,7 @@ interface SignupResponse {
   access_token: string;
   token_type: string;
   user: {
+    user_id: number;
     email: string;
     name: string;
   };

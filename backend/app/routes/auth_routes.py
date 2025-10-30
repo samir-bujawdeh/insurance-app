@@ -23,16 +23,10 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_pw = utils.hash_password(user.password)
-    
-    # Get the next user_id manually
-    max_user_id = db.query(models.User.user_id).order_by(models.User.user_id.desc()).first()
-    next_user_id = (max_user_id[0] + 1) if max_user_id else 1
-    
     new_user = models.User(
-        user_id=next_user_id,
-        email=user.email, 
-        password_hash=hashed_pw, 
-        name=user.name, 
+        email=user.email,
+        password_hash=hashed_pw,
+        name=user.name,
         phone=user.phone
     )
     db.add(new_user)
@@ -43,9 +37,10 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     access_token = utils.create_access_token({"sub": new_user.email})
     
     return {
-        "access_token": access_token, 
+        "access_token": access_token,
         "token_type": "bearer",
         "user": {
+            "user_id": new_user.user_id,
             "email": new_user.email,
             "name": new_user.name
         }
@@ -73,4 +68,4 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     user = db.query(models.User).filter(models.User.email == email).first()
-    return {"email": user.email, "name": user.name}
+    return {"user_id": user.user_id, "email": user.email, "name": user.name}

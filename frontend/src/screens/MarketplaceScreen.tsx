@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView as SafeAreaViewContext } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   getInsuranceTypes,
   getPolicies,
@@ -320,7 +321,9 @@ const MarketplaceScreen = () => {
                 {step === "chooseType" ? "Marketplace" : step === "questionnaire" ? (selectedType?.name || "Questionnaire") : "Results"}
               </Text>
             </View>
-            <View style={styles.headerProfileAvatar} />
+            <View style={styles.headerProfileAvatar}>
+              <MaterialCommunityIcons name="storefront-outline" size={24} color="#FFFFFF" />
+            </View>
           </View>
         </View>
 
@@ -382,6 +385,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.2)",
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollView: {
     flex: 1,

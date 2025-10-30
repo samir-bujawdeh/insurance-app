@@ -87,7 +87,7 @@ class InsurancePolicy(Base):
     exclusions_summary = Column(Text, nullable=True)
     premium = Column(Numeric(10, 2), nullable=True)
     duration = Column(String(50), nullable=True)
-    status = Column(SQLEnum(PolicyStatus), default=PolicyStatus.active.value)
+    status = Column(SQLEnum(PolicyStatus), default=PolicyStatus.active)
     contract_pdf_url = Column(String(255), nullable=True)
 
     # Relationships
@@ -168,7 +168,7 @@ class UserPolicy(Base):
     end_date = Column(Date, nullable=True)
     policy_number = Column(String(100), nullable=True)
     premium_paid = Column(Numeric(10, 2), nullable=True)
-    status = Column(SQLEnum(UserPolicyStatus), default=UserPolicyStatus.pending_payment.value)
+    status = Column(SQLEnum(UserPolicyStatus), default=UserPolicyStatus.pending_payment)
     signed_contract_url = Column(String(255), nullable=True)
     issued_at = Column(DateTime, default=datetime.utcnow)
 
@@ -186,7 +186,7 @@ class Claim(Base):
     user_policy_id = Column(Integer, ForeignKey("user_policies.user_policy_id"), nullable=False)
     date_filed = Column(Date, default=datetime.utcnow().date())
     claim_amount = Column(Numeric(10, 2), nullable=True)
-    status = Column(SQLEnum(ClaimStatus), default=ClaimStatus.submitted.value)
+    status = Column(SQLEnum(ClaimStatus), default=ClaimStatus.submitted)
     description = Column(Text, nullable=True)
 
     # Relationships

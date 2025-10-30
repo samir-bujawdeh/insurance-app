@@ -12,7 +12,7 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 @router.get("/")
 def list_notifications(db: Session = Depends(get_db)):
     """Get notifications - placeholder for future implementation"""
-    return {"message": "Notifications feature coming soon", "notifications": []}
+    return []
 
 
 @router.post("/read/{notification_id}")

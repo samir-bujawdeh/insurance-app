@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes import auth_routes
 from app.routes import marketplace_routes, policy_routes, claims_routes, notifications_routes, document_routes
 from sqlalchemy.orm import Session
-from app.database import SessionLocal, Base, engine
+from app.database import SessionLocal, Base, engine, DB_URL_EFFECTIVE, DB_DIALECT
+from sqlalchemy import text
 from app import models
 import random
 
@@ -39,6 +40,33 @@ def init_and_seed():
     Base.metadata.create_all(bind=engine)
     db: Session = SessionLocal()
     try:
+        # Ensure Postgres sequence/default exist for users.user_id (safety for legacy migrations)
+        if DB_DIALECT == "postgresql":
+            try:
+                with engine.begin() as conn:
+                    # Create sequence if missing
+                    conn.execute(text("""
+                        DO $$
+                        BEGIN
+                            IF NOT EXISTS (
+                                SELECT 1 FROM pg_class WHERE relkind = 'S' AND relname = 'users_user_id_seq'
+                            ) THEN
+                                CREATE SEQUENCE users_user_id_seq;
+                            END IF;
+                        END$$;
+                    """))
+                    # Set default nextval on users.user_id
+                    conn.execute(text("""
+                        ALTER TABLE users
+                        ALTER COLUMN user_id SET DEFAULT nextval('users_user_id_seq');
+                    """))
+                    # Align sequence to max(user_id)
+                    conn.execute(text("""
+                        SELECT setval('users_user_id_seq', COALESCE((SELECT MAX(user_id) FROM users), 0) + 1, false);
+                    """))
+            except Exception as _e:
+                # Continue; seeding may still proceed for SQLite or if migration already correct
+                pass
         print("Starting database seeding...")
         # Seed providers
         if db.query(models.Provider).count() == 0:
@@ -203,3 +231,34 @@ def init_and_seed():
         db.rollback()
     finally:
         db.close()
+
+
+@app.get("/_health/db")
+def db_healthcheck():
+    """Return basic DB connectivity and which database is configured."""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        connected = True
+    except Exception as e:
+        connected = False
+    # Redact credentials in URL (show scheme+host+db only when possible)
+    try:
+        url_str = str(engine.url)
+        # Basic redaction: drop credentials if present
+        if "@" in url_str and "://" in url_str:
+            scheme, rest = url_str.split("://", 1)
+            if "@" in rest:
+                rest = rest.split("@", 1)[1]
+            url_redacted = f"{scheme}://{rest}"
+        else:
+            url_redacted = url_str
+    except Exception:
+        url_redacted = "unknown"
+
+    return {
+        "connected": connected,
+        "dialect": DB_DIALECT,
+        "url": url_redacted,
+        "using_fallback_sqlite": DB_DIALECT == "sqlite",
+    }

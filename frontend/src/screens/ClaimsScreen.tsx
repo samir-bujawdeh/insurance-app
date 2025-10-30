@@ -71,8 +71,7 @@ const ClaimsScreen = () => {
     setRefreshing(true);
     try {
       const data = await listClaims();
-      // Use mock data since API returns empty array
-      setClaims(mockClaims);
+      setClaims(Array.isArray(data) && data.length > 0 ? data : mockClaims);
     } catch (error) {
       console.error("Error loading claims:", error);
       Alert.alert("Error", "Failed to load claims");

@@ -23,7 +23,7 @@ import NotificationsScreen from "../screens/NotificationsScreen";
 
 const Tab = createBottomTabNavigator();
 const { width } = Dimensions.get("window");
-const tabRoutes = ["Home", "Policies", "+", "Claims", "Notifications"];
+const tabRoutes = ["Home", "Policies", "Marketplace", "Claims", "Notifications"];
 const tabWidth = (width - 56) / tabRoutes.length;
 const isDarkMode = Appearance.getColorScheme() === "dark";
 
@@ -123,7 +123,7 @@ const TabNavigator = () => {
             const iconMap: { [key: string]: string } = {
               Home: "home",
               Policies: "briefcase",
-              "+": "add-circle",
+              Marketplace: "add-circle",
               Claims: "document-text",
               Notifications: "notifications",
             };
@@ -146,10 +146,10 @@ const TabNavigator = () => {
                     size={24}
                     color={isFocused ? "#764ba2" : "#8E8E93"}
                   />
-                  {isNotificationsTab && unreadCount > 0 && (
+                  {isNotificationsTab && (unreadCount ?? 0) > 0 && (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>
-                        {unreadCount > 99 ? "99+" : unreadCount}
+                        {(unreadCount ?? 0) > 99 ? "99+" : (unreadCount ?? 0)}
                       </Text>
                     </View>
                   )}
@@ -170,7 +170,7 @@ const TabNavigator = () => {
       >
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Policies" component={PoliciesScreen} />
-        <Tab.Screen name="+" component={MarketplaceScreen} />
+        <Tab.Screen name="Marketplace" component={MarketplaceScreen} />
         <Tab.Screen name="Claims" component={ClaimsScreen} />
         <Tab.Screen name="Notifications" component={NotificationsScreen} />
       </Tab.Navigator>
@@ -240,6 +240,7 @@ const styles = StyleSheet.create({
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 2,
   },
   badge: {
     position: "absolute",
@@ -254,6 +255,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 2,
     borderColor: Platform.OS === "ios" ? "rgba(255,255,255,0.75)" : "#FFFFFF",
+    zIndex: 3,
   },
   badgeText: {
     color: "#FFFFFF",

@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import { getCurrentUser } from "../api/auth";
 
 interface User {
+  user_id: number;
   email: string;
   name: string;
 }

@@ -35,11 +35,7 @@ const PoliciesScreen = () => {
     
     setRefreshing(true);
     try {
-      // Use demo user ID for demonstration purposes
-      // In production, this would come from the authenticated user's ID
-      const userId = 10; // Demo user ID from seeded data
-      
-      const userPolicies = await getMyPolicies(userId);
+      const userPolicies = await getMyPolicies(user.user_id);
       setPolicies(userPolicies);
     } catch (error) {
       console.error("Error loading policies:", error);

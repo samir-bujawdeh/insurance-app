@@ -60,8 +60,6 @@ export async function verifyDocument(userDocId: number, verified: boolean): Prom
 }
 
 export async function getPolicyRequirements(policyId: number): Promise<PolicyDocumentRequirement[]> {
-  const res = await api.get(`/documents/policy-requirements`, {
-    params: { policy_id: policyId }
-  });
+  const res = await api.get(`/marketplace/policies/${policyId}/requirements`);
   return res.data;
 }

@@ -48,12 +48,24 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const markAsRead = (notificationId: number) => {
+    // Update local read tracking first
+    let wasAlreadyRead = false;
     setReadStatus(prev => {
-      const newSet = new Set(prev);
-      newSet.add(notificationId);
-      return newSet;
+      if (prev.has(notificationId)) {
+        wasAlreadyRead = true;
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(notificationId);
+      return next;
     });
-    // Immediately update count
+
+    // Optimistically bump the unread count down immediately to avoid race with refresh
+    if (!wasAlreadyRead) {
+      setUnreadCount(prev => (prev > 0 ? prev - 1 : 0));
+    }
+
+    // Then refresh from source to reconcile (uses updated readStatus on next render)
     refreshNotifications();
   };
 
