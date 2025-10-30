@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import {
   View,
+  Text,
   Animated,
   Pressable,
   StyleSheet,
@@ -9,8 +10,10 @@ import {
   Appearance,
 } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur"; // ✨ Native blur for iOS
+import { useNotifications } from "../context/NotificationContext";
 
 import HomeScreen from "../screens/HomeScreen";
 import PoliciesScreen from "../screens/PoliciesScreen";
@@ -28,6 +31,8 @@ const TabNavigator = () => {
   const indicatorPosition = useRef(new Animated.Value(0)).current;
   const currentTabIndex = useRef(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { unreadCount, refreshNotifications } = useNotifications();
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     // Initial fade in when component mounts
@@ -36,12 +41,29 @@ const TabNavigator = () => {
       duration: 150,
       useNativeDriver: true,
     }).start();
-  }, []);
+
+    // Listen for navigation state changes to refresh when returning from Notifications screen
+    const unsubscribeState = navigation.addListener('state', () => {
+      // Refresh when navigation state changes (e.g., returning from Notifications)
+      setTimeout(() => {
+        refreshNotifications();
+      }, 200);
+    });
+
+    return () => {
+      unsubscribeState();
+    };
+  }, [navigation, refreshNotifications]);
 
   const handleTabPress = (routeName: string, navigation: any) => {
     // Reset opacity to 0.5, then fade in
     fadeAnim.setValue(0.5);
     navigation.navigate(routeName);
+    
+    // Refresh notification count when navigating - ensures it updates after marking as read  
+    setTimeout(() => {
+      refreshNotifications();
+    }, 300);
     
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -106,21 +128,32 @@ const TabNavigator = () => {
               Notifications: "notifications",
             };
 
+            const isNotificationsTab = route.name === "Notifications";
+
             return (
               <Pressable
                 key={route.key}
                 onPress={() => handleTabPress(route.name, navigation)}
                 style={styles.tabButton}
               >
-                <Ionicons
-                  name={
-                    isFocused
-                      ? (iconMap[route.name] as any)
-                      : (`${iconMap[route.name]}-outline` as any)
-                  }
-                  size={24}
-                  color={isFocused ? "#764ba2" : "#8E8E93"}
-                />
+                <View style={styles.iconContainer}>
+                  <Ionicons
+                    name={
+                      isFocused
+                        ? (iconMap[route.name] as any)
+                        : (`${iconMap[route.name]}-outline` as any)
+                    }
+                    size={24}
+                    color={isFocused ? "#764ba2" : "#8E8E93"}
+                  />
+                  {isNotificationsTab && unreadCount > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </Pressable>
             );
           })}
@@ -202,6 +235,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     height: "100%",
+  },
+  iconContainer: {
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badge: {
+    position: "absolute",
+    top: -6,
+    right: -8,
+    backgroundColor: "#FF3B30",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 6,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: Platform.OS === "ios" ? "rgba(255,255,255,0.75)" : "#FFFFFF",
+  },
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
   },
 });
 

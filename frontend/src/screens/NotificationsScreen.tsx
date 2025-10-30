@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,12 +6,17 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
+  ScrollView,
+  Animated,
 } from "react-native";
+import { useSafeAreaInsets, SafeAreaView as SafeAreaViewContext } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import { listNotifications, markNotificationRead } from "../api/notifications";
 import { useAuth } from "../context/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
 
 interface Notification {
   id: number;
@@ -25,8 +30,15 @@ interface Notification {
 
 const NotificationsScreen = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const { markAsRead: markAsReadInContext } = useNotifications();
+  
+  // Animation values for header opacity based on scroll
+  const headerTextOpacity = useRef(new Animated.Value(1)).current;
+  const headerIconOpacity = useRef(new Animated.Value(1)).current;
 
   // Mock data for demonstration since the API returns empty array
   const mockNotifications: Notification[] = [
@@ -102,8 +114,12 @@ const NotificationsScreen = () => {
             : notification
         )
       );
+      // Update context so TabNavigator badge updates
+      markAsReadInContext(notificationId);
     } catch (error) {
       console.error("Error marking notification as read:", error);
+      // Still update context even on error since we've marked it read locally
+      markAsReadInContext(notificationId);
     }
   };
 
@@ -118,6 +134,29 @@ const NotificationsScreen = () => {
   useEffect(() => {
     loadNotifications();
   }, []);
+
+  // Handle scroll events to animate header opacity
+  const handleScroll = (event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    const headerHeight = 90;
+    
+    // Calculate opacity based on scroll position
+    const fadeStart = 8;
+    const fadeEnd = headerHeight;
+    
+    if (scrollY <= fadeStart) {
+      headerTextOpacity.setValue(1);
+      headerIconOpacity.setValue(1);
+    } else if (scrollY >= fadeEnd) {
+      headerTextOpacity.setValue(0);
+      headerIconOpacity.setValue(0);
+    } else {
+      const fadeProgress = (scrollY - fadeStart) / (fadeEnd - fadeStart);
+      const opacity = 1 - fadeProgress;
+      headerTextOpacity.setValue(opacity);
+      headerIconOpacity.setValue(opacity);
+    }
+  };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -174,32 +213,34 @@ const NotificationsScreen = () => {
     >
       <View style={styles.notificationContent}>
         <View style={styles.notificationHeader}>
-          <View style={styles.iconContainer}>
+          <View style={[styles.iconContainer, { backgroundColor: getNotificationColor(item.type) + "15" }]}>
             <Ionicons
               name={getNotificationIcon(item.type) as any}
-              size={24}
+              size={20}
               color={getNotificationColor(item.type)}
             />
           </View>
           <View style={styles.notificationTextContainer}>
-            <Text style={[
-              styles.notificationTitle,
-              !item.is_read && styles.unreadTitle,
-            ]}>
-              {item.title}
-            </Text>
+            <View style={styles.titleRow}>
+              <Text style={[
+                styles.notificationTitle,
+                !item.is_read && styles.unreadTitle,
+              ]}>
+                {item.title}
+              </Text>
+              {!item.is_read && <View style={styles.unreadDot} />}
+            </View>
             <Text style={styles.notificationTime}>
               {formatDate(item.created_at)}
             </Text>
           </View>
-          {!item.is_read && <View style={styles.unreadDot} />}
         </View>
         
         <Text style={styles.notificationBody}>{item.body}</Text>
         
         {item.action_url && (
           <View style={styles.actionContainer}>
-            <Text style={styles.actionText}>Tap to view details</Text>
+            <Text style={styles.actionText}>View details</Text>
             <Ionicons name="chevron-forward" size={16} color="#007AFF" />
           </View>
         )}
@@ -211,105 +252,187 @@ const NotificationsScreen = () => {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
-          <Text style={styles.title}>🔔 Notifications</Text>
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Please log in</Text>
-            <Text style={styles.emptySubtitle}>
-              You need to be logged in to view your notifications.
-            </Text>
+      <SafeAreaViewContext style={styles.safeArea} edges={['left', 'right']}>
+        <LinearGradient
+          colors={["#667eea", "#764ba2"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.fullBackground}
+        >
+          <View style={styles.fixedHeader}>
+            <View style={styles.headerContent}>
+              <View style={styles.headerTextContainer}>
+                <Text style={styles.headerGreeting}>Notifications</Text>
+                <Text style={styles.headerUserName}>Please log in</Text>
+              </View>
+            </View>
           </View>
-        </View>
-      </SafeAreaView>
+        </LinearGradient>
+      </SafeAreaViewContext>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}> Notifications</Text>
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount}</Text>
-            </View>
-          )}
+    <SafeAreaViewContext style={styles.safeArea} edges={['left', 'right']}>
+      {/* Full Background Gradient */}
+      <LinearGradient
+        colors={["#667eea", "#764ba2"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.fullBackground}
+      >
+        {/* Fixed Header Content */}
+        <View style={styles.fixedHeader}>
+          <View style={styles.headerContent}>
+            <Animated.View style={[styles.headerTextContainer, { opacity: headerTextOpacity }]}>
+              <Text style={styles.headerGreeting}>Notifications</Text>
+            </Animated.View>
+            <Animated.View style={{ opacity: headerIconOpacity }}>
+              <View style={styles.headerProfileAvatar}>
+                <Ionicons name="notifications" size={24} color="#FFFFFF" />
+              </View>
+            </Animated.View>
+          </View>
         </View>
 
-        {notifications.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="notifications-outline" size={64} color="#C7C7CC" />
-            <Text style={styles.emptyTitle}>No notifications</Text>
-            <Text style={styles.emptySubtitle}>
-              You're all caught up! We'll notify you when there's something important.
-            </Text>
+        {/* Scrollable Content */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          alwaysBounceVertical={true}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        >
+          {/* White Content Card */}
+          <View style={styles.contentCard}>
+
+            {/* Notifications List */}
+            <View style={styles.section}>
+              {notifications.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <View style={styles.emptyIconContainer}>
+                    <Ionicons name="notifications-outline" size={64} color="#C7C7CC" />
+                  </View>
+                  <Text style={styles.emptyTitle}>No notifications</Text>
+                  <Text style={styles.emptySubtitle}>
+                    You're all caught up! We'll notify you when there's something important.
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={notifications}
+                  keyExtractor={(item) => String(item.id)}
+                  renderItem={renderNotificationItem}
+                  refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={loadNotifications} />
+                  }
+                  contentContainerStyle={styles.notificationsList}
+                  showsVerticalScrollIndicator={false}
+                  scrollEnabled={false}
+                />
+              )}
+            </View>
           </View>
-        ) : (
-          <FlatList
-            data={notifications}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderNotificationItem}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={loadNotifications} />
-            }
-            contentContainerStyle={styles.notificationsList}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
-    </SafeAreaView>
+        </ScrollView>
+        
+        {/* Bottom white section positioned absolutely */}
+        <View style={styles.bottomWhiteSection} />
+      </LinearGradient>
+    </SafeAreaViewContext>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    backgroundColor: "#F5F7FA",
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  fullBackground: {
+    flex: 1,
+  },
+  fixedHeader: {
+    position: 'absolute',
+    top: 20,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
+    height: 120,
+    justifyContent: 'flex-end',
+    zIndex: 5,
+    elevation: 5,
+  },
+  scrollView: {
+    flex: 1,
+    zIndex: 10,
+    elevation: 10,
+  },
+  contentCard: {
     backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: 140,
+    minHeight: '100%',
   },
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-    padding: 16,
-    paddingTop: 36,
-    paddingBottom: 36,
+  scrollContent: {
+    paddingTop: 20,
+    paddingBottom: 100,
+    paddingHorizontal: 0,
   },
-  header: {
+  headerContent: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#1A1A1A",
-  },
-  badge: {
-    backgroundColor: "#FF3B30",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 24,
     alignItems: "center",
   },
-  badgeText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  emptyState: {
+  headerTextContainer: {
     flex: 1,
+  },
+  headerGreeting: {
+    fontSize: 34,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  headerUserName: {
+    fontSize: 22,
+    color: "rgba(255,255,255,0.9)",
+  },
+  headerProfileAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  section: {
+    paddingHorizontal: 16,
+    marginTop: 32,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 40,
     paddingHorizontal: 32,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#F5F5F5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: "600",
     color: "#333",
-    marginTop: 16,
     marginBottom: 8,
   },
   emptySubtitle: {
@@ -323,23 +446,24 @@ const styles = StyleSheet.create({
   },
   notificationCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 12,
+    marginHorizontal: 8,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
   },
   unreadCard: {
     borderLeftWidth: 4,
     borderLeftColor: "#007AFF",
+    borderColor: "#E3F2FD",
   },
   notificationContent: {
-    padding: 16,
+    padding: 14,
   },
   notificationHeader: {
     flexDirection: "row",
@@ -347,51 +471,73 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
-    marginTop: 2,
   },
   notificationTextContainer: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+    gap: 8,
+  },
   notificationTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1A1A1A",
-    marginBottom: 4,
+    color: "#1C1C1E",
+    flex: 1,
   },
   unreadTitle: {
     fontWeight: "700",
   },
   notificationTime: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#8E8E93",
   },
   unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: "#007AFF",
-    marginTop: 6,
   },
   notificationBody: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#666",
-    lineHeight: 20,
-    marginBottom: 12,
+    lineHeight: 18,
+    marginBottom: 8,
+    marginLeft: 52,
   },
   actionContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#F5F5F5",
-    paddingHorizontal: 12,
+    backgroundColor: "#F8F9FA",
+    paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
+    marginLeft: 52,
+    marginTop: 4,
   },
   actionText: {
     fontSize: 13,
     color: "#007AFF",
-    fontWeight: "500",
+    fontWeight: "600",
+  },
+  bottomWhiteSection: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    height: 200,
+    zIndex: 5,
+    elevation: 5,
   },
 });
 
