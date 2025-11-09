@@ -19,12 +19,15 @@ import { signupUser } from "../api/auth";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
+import { useTheme } from "../context/ThemeContext";
 
 const { width, height } = Dimensions.get("window");
 
 const SignupScreen = () => {
   const { login } = useContext(AuthContext);
   const navigation = useNavigation();
+  const { theme } = useTheme();
+  const styles = SignupScreenStyles(theme);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -156,17 +159,17 @@ const SignupScreen = () => {
     return (
       <View style={[
         styles.inputContainer,
-        isFocused && styles.inputContainerFocused
+        isFocused && [styles.inputContainerFocused, { borderColor: theme.inputBorderFocused }]
       ]}>
         <Ionicons 
           name={icon as any} 
           size={24} 
-          color={isFocused ? "#764ba2" : "#999"} 
+          color={isFocused ? theme.inputBorderFocused : theme.inputPlaceholder} 
           style={styles.inputIcon}
         />
         <TextInput
           placeholder={placeholder}
-          placeholderTextColor="#999"
+          placeholderTextColor={theme.inputPlaceholder}
           value={value}
           onChangeText={(text) => updateField(field, text)}
           onFocus={() => setFocusedField(field)}
@@ -195,7 +198,7 @@ const SignupScreen = () => {
                   : "eye-outline"
               } 
               size={24} 
-              color="#999" 
+              color={theme.inputPlaceholder} 
             />
           </TouchableOpacity>
         )}
@@ -262,7 +265,7 @@ const SignupScreen = () => {
               style={styles.signupButton}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color={theme.textInverse} size="small" />
               ) : (
                 <Text style={styles.buttonText}>Create Account</Text>
               )}
@@ -287,10 +290,10 @@ const SignupScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const SignupScreenStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
   },
   keyboardView: {
     flex: 1,
@@ -310,7 +313,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: "700",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#1C1C1E",
+    color: theme.text,
     marginBottom: 12,
     letterSpacing: 0.5,
   },
@@ -318,7 +321,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "400",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#666",
+    color: theme.textTertiary,
   },
   formContainer: {
     marginBottom: 0,
@@ -327,17 +330,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E1E5E9",
+    borderColor: theme.borderMedium,
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 4,
     marginBottom: 16,
-    backgroundColor: "#F5F7FA",
+    backgroundColor: theme.inputBackground,
   },
   inputContainerFocused: {
-    backgroundColor: "#F5F7FA",
+    backgroundColor: theme.inputBackground,
     borderWidth: 1,
-    borderColor: "#764ba2",
   },
   inputIcon: {
     marginRight: 12,
@@ -347,7 +349,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "400",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#333",
+    color: theme.text,
     paddingVertical: 16,
   },
   eyeIcon: {
@@ -355,7 +357,7 @@ const styles = StyleSheet.create({
   },
   signupButton: {
     borderRadius: 12,
-    backgroundColor: "#764ba2",
+    backgroundColor: theme.buttonPrimary,
     paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -363,7 +365,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   buttonText: {
-    color: "#fff",
+    color: theme.textInverse,
     fontSize: 18,
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
@@ -374,13 +376,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   footerText: {
-    color: "#666",
+    color: theme.textTertiary,
     fontSize: 14,
     fontWeight: "400",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
   },
   linkText: {
-    color: "#764ba2",
+    color: theme.buttonPrimary,
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
   },

@@ -68,4 +68,4 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     user = db.query(models.User).filter(models.User.email == email).first()
-    return {"user_id": user.user_id, "email": user.email, "name": user.name}
+    return {"user_id": user.user_id, "email": user.email, "name": user.name, "phone": user.phone}

@@ -17,9 +17,12 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { getMyPolicies, UserPolicyDetail } from "../api/policies";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 const PoliciesScreen = () => {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const styles = PoliciesScreenStyles(theme);
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const [policies, setPolicies] = useState<UserPolicyDetail[]>([]);
@@ -123,7 +126,7 @@ const PoliciesScreen = () => {
         
         <View style={styles.policyDetails}>
           <View style={styles.providerRow}>
-            <Ionicons name="business" size={16} color="#007AFF" />
+            <Ionicons name="business" size={16} color={theme.accent} />
             <Text style={styles.providerName}>{item.policy.provider.name}</Text>
           </View>
           
@@ -159,7 +162,7 @@ const PoliciesScreen = () => {
         
         <View style={styles.policyActions}>
           <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="eye" size={16} color="#007AFF" />
+            <Ionicons name="eye" size={16} color={theme.accent} />
             <Text style={styles.actionButtonText}>View Details</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
@@ -175,7 +178,7 @@ const PoliciesScreen = () => {
     return (
       <SafeAreaViewContext style={styles.safeArea} edges={['left', 'right']}>
         <LinearGradient
-          colors={["#667eea", "#764ba2"]}
+          colors={[theme.gradientStart, theme.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.fullBackground}
@@ -184,7 +187,7 @@ const PoliciesScreen = () => {
             <View style={styles.headerContent}>
               <View style={styles.headerTextContainer}>
                 <Text style={styles.headerGreeting}>My Policies</Text>
-                <Text style={styles.headerUserName}>Please log in</Text>
+                <Text style={styles.headerGreeting}>Please log in</Text>
               </View>
             </View>
           </View>
@@ -197,7 +200,7 @@ const PoliciesScreen = () => {
     <SafeAreaViewContext style={styles.safeArea} edges={['left', 'right']}>
       {/* Full Background Gradient */}
       <LinearGradient
-        colors={["#667eea", "#764ba2"]}
+        colors={[theme.gradientStart, theme.gradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.fullBackground}
@@ -210,7 +213,7 @@ const PoliciesScreen = () => {
             </Animated.View>
             <Animated.View style={{ opacity: headerIconOpacity }}>
               <View style={styles.headerProfileAvatar}>
-                <Ionicons name="briefcase" size={24} color="#FFFFFF" />
+                <Ionicons name="briefcase" size={24} color={theme.textInverse} />
               </View>
             </Animated.View>
           </View>
@@ -234,7 +237,7 @@ const PoliciesScreen = () => {
               {policies.length === 0 ? (
                 <View style={styles.emptyState}>
                   <View style={styles.emptyIconContainer}>
-                    <Ionicons name="document-outline" size={64} color="#C7C7CC" />
+                    <Ionicons name="document-outline" size={64} color={theme.textSecondary} />
                   </View>
                   <Text style={styles.emptyTitle}>No policies yet</Text>
                   <Text style={styles.emptySubtitle}>
@@ -245,7 +248,7 @@ const PoliciesScreen = () => {
                     onPress={() => navigation.navigate("Main", { screen: "Marketplace" })}
                   >
                     <Text style={styles.browseButtonText}>Browse Marketplace</Text>
-                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                    <Ionicons name="arrow-forward" size={16} color={theme.textInverse} />
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -270,10 +273,10 @@ const PoliciesScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const PoliciesScreenStyles = (theme: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F5F7FA",
+    backgroundColor: theme.background,
     paddingTop: 0,
     paddingBottom: 0,
   },
@@ -299,7 +302,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   contentCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.card,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     marginTop: 140,
@@ -321,7 +324,7 @@ const styles = StyleSheet.create({
   headerGreeting: {
     fontSize: 34,
     fontWeight: "700",
-    color: "rgba(255,255,255,0.9)",
+    color: theme.overlay,
     marginBottom: 4,
   
   },
@@ -329,11 +332,11 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: theme.overlayDark,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: theme.overlayMedium,
   },
   section: {
     paddingHorizontal: 16,
@@ -342,7 +345,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1C1C1E",
+    color: theme.text,
     marginBottom: 16,
   },
   emptyState: {
@@ -354,7 +357,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: theme.surfaceSecondary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
@@ -362,19 +365,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#333",
+    color: theme.text,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 16,
-    color: "#666",
+    color: theme.textTertiary,
     textAlign: "center",
     marginBottom: 24,
     lineHeight: 24,
   },
   browseButton: {
     flexDirection: "row",
-    backgroundColor: "#007AFF",
+    backgroundColor: theme.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -382,7 +385,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   browseButtonText: {
-    color: "#FFFFFF",
+    color: theme.textInverse,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -390,7 +393,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   policyCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
     borderRadius: 16,
     marginBottom: 16,
     marginHorizontal: 8,
@@ -400,7 +403,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderColor: theme.borderLight,
   },
   policyCardContent: {
     padding: 20,
@@ -418,11 +421,11 @@ const styles = StyleSheet.create({
   policyName: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#1C1C1E",
+    color: theme.text,
     marginBottom: 8,
   },
   policyTypeBadge: {
-    backgroundColor: "#E3F2FD",
+    backgroundColor: theme.promoBackground,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -430,7 +433,7 @@ const styles = StyleSheet.create({
   },
   policyTypeText: {
     fontSize: 12,
-    color: "#1976D2",
+    color: theme.promoButton,
     fontWeight: "500",
   },
   statusContainer: {
@@ -456,7 +459,7 @@ const styles = StyleSheet.create({
   },
   providerName: {
     fontSize: 14,
-    color: "#007AFF",
+    color: theme.accent,
     fontWeight: "500",
   },
   policyNumberRow: {
@@ -467,7 +470,7 @@ const styles = StyleSheet.create({
   },
   policyNumber: {
     fontSize: 13,
-    color: "#666",
+    color: theme.textTertiary,
   },
   premiumRow: {
     flexDirection: "row",
@@ -487,17 +490,17 @@ const styles = StyleSheet.create({
   },
   coveragePeriod: {
     fontSize: 13,
-    color: "#666",
+    color: theme.textTertiary,
   },
   coverageSummaryContainer: {
-    backgroundColor: "#F8F9FA",
+    backgroundColor: theme.surfaceSecondary,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   coverageSummary: {
     fontSize: 13,
-    color: "#333",
+    color: theme.text,
     lineHeight: 18,
   },
   policyActions: {
@@ -524,7 +527,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.card,
     height: 200,
     zIndex: 5,
     elevation: 5,

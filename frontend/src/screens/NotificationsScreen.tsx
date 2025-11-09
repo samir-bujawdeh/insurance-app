@@ -14,6 +14,7 @@ import { useSafeAreaInsets, SafeAreaView as SafeAreaViewContext } from "react-na
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTheme } from "../context/ThemeContext";
 import { listNotifications, markNotificationRead } from "../api/notifications";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
@@ -30,6 +31,8 @@ interface Notification {
 
 const NotificationsScreen = () => {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const styles = NotificationsScreenStyles(theme);
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -241,7 +244,7 @@ const NotificationsScreen = () => {
         {item.action_url && (
           <View style={styles.actionContainer}>
             <Text style={styles.actionText}>View details</Text>
-            <Ionicons name="chevron-forward" size={16} color="#007AFF" />
+            <Ionicons name="chevron-forward" size={16} color={theme.accent} />
           </View>
         )}
       </View>
@@ -254,7 +257,7 @@ const NotificationsScreen = () => {
     return (
       <SafeAreaViewContext style={styles.safeArea} edges={['left', 'right']}>
         <LinearGradient
-          colors={["#667eea", "#764ba2"]}
+          colors={[theme.gradientStart, theme.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.fullBackground}
@@ -276,7 +279,7 @@ const NotificationsScreen = () => {
     <SafeAreaViewContext style={styles.safeArea} edges={['left', 'right']}>
       {/* Full Background Gradient */}
       <LinearGradient
-        colors={["#667eea", "#764ba2"]}
+        colors={[theme.gradientStart, theme.gradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.fullBackground}
@@ -289,7 +292,7 @@ const NotificationsScreen = () => {
             </Animated.View>
             <Animated.View style={{ opacity: headerIconOpacity }}>
               <View style={styles.headerProfileAvatar}>
-                <Ionicons name="notifications" size={24} color="#FFFFFF" />
+                <Ionicons name="notifications" size={24} color={theme.textInverse} />
               </View>
             </Animated.View>
           </View>
@@ -313,7 +316,7 @@ const NotificationsScreen = () => {
               {notifications.length === 0 ? (
                 <View style={styles.emptyState}>
                   <View style={styles.emptyIconContainer}>
-                    <Ionicons name="notifications-outline" size={64} color="#C7C7CC" />
+                    <Ionicons name="notifications-outline" size={64} color={theme.textSecondary} />
                   </View>
                   <Text style={styles.emptyTitle}>No notifications</Text>
                   <Text style={styles.emptySubtitle}>
@@ -344,10 +347,10 @@ const NotificationsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const NotificationsScreenStyles = (theme: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F5F7FA",
+    backgroundColor: theme.background,
     paddingTop: 0,
     paddingBottom: 0,
   },
@@ -373,7 +376,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   contentCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.card,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     marginTop: 140,
@@ -395,21 +398,21 @@ const styles = StyleSheet.create({
   headerGreeting: {
     fontSize: 34,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: theme.textInverse,
   },
   headerUserName: {
     fontSize: 22,
-    color: "rgba(255,255,255,0.9)",
+    color: theme.overlay,
   },
   headerProfileAvatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: theme.overlayDark,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: theme.overlayMedium,
   },
   section: {
     paddingHorizontal: 16,
@@ -437,7 +440,7 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 16,
-    color: "#666",
+    color: theme.textTertiary,
     textAlign: "center",
     lineHeight: 24,
   },
@@ -445,7 +448,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   notificationCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.card,
     borderRadius: 16,
     marginBottom: 12,
     marginHorizontal: 8,
@@ -455,12 +458,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderColor: theme.borderLight,
   },
   unreadCard: {
     borderLeftWidth: 4,
-    borderLeftColor: "#007AFF",
-    borderColor: "#E3F2FD",
+    borderLeftColor: theme.accent,
+    borderColor: theme.promoBackground,
   },
   notificationContent: {
     padding: 14,
@@ -490,7 +493,7 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1C1C1E",
+    color: theme.text,
     flex: 1,
   },
   unreadTitle: {
@@ -498,17 +501,17 @@ const styles = StyleSheet.create({
   },
   notificationTime: {
     fontSize: 13,
-    color: "#8E8E93",
+    color: theme.textSecondary,
   },
   unreadDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#007AFF",
+    backgroundColor: theme.accent,
   },
   notificationBody: {
     fontSize: 13,
-    color: "#666",
+    color: theme.textTertiary,
     lineHeight: 18,
     marginBottom: 8,
     marginLeft: 52,
@@ -517,7 +520,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#F8F9FA",
+    backgroundColor: theme.surfaceSecondary,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
@@ -534,7 +537,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.card,
     height: 200,
     zIndex: 5,
     elevation: 5,

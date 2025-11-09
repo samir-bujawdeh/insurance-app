@@ -1,5 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Float, Text, Boolean, Numeric, Enum as SQLEnum, Date
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import JSONB
+
 from datetime import datetime
 from .database import Base
 import enum
@@ -19,6 +21,7 @@ class RequirementLevel(enum.Enum):
 
 
 class UserPolicyStatus(enum.Enum):
+    
     active = "active"
     expired = "expired"
     pending_payment = "pending_payment"
@@ -40,6 +43,8 @@ class User(Base):
     email = Column(String(150), unique=True, nullable=False, index=True)
     phone = Column(String(50), nullable=True)
     password_hash = Column(String(255), nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -83,9 +88,6 @@ class InsurancePolicy(Base):
     provider_id = Column(Integer, ForeignKey("providers.provider_id"), nullable=False)
     name = Column(String(150), nullable=False)
     description = Column(Text, nullable=True)
-    coverage_summary = Column(Text, nullable=True)
-    exclusions_summary = Column(Text, nullable=True)
-    premium = Column(Numeric(10, 2), nullable=True)
     duration = Column(String(50), nullable=True)
     status = Column(SQLEnum(PolicyStatus), default=PolicyStatus.active)
     contract_pdf_url = Column(String(255), nullable=True)
@@ -191,3 +193,39 @@ class Claim(Base):
 
     # Relationships
     user_policy = relationship("UserPolicy", back_populates="claims")
+
+class Tariff(Base):
+    __tablename__ = "tariffs"
+
+    tariff_id = Column(Integer, primary_key=True, autoincrement=True)
+    policy_id = Column(Integer, ForeignKey("insurance_policies.policy_id"), nullable=False)
+
+    age_min = Column(Integer, nullable=False)
+    age_max = Column(Integer, nullable=False)
+    class_type = Column(String(10), nullable=False)
+
+    # Family details
+    family_type = Column(String(30), nullable=True)  # Display label
+    family_min = Column(Integer, nullable=False, default=1)
+    family_max = Column(Integer, nullable=False, default=1)
+
+    # Pricing
+    inpatient_usd = Column(Numeric(10, 2), nullable=True)
+    total_usd = Column(Numeric(10, 2), nullable=True)
+
+    # Outpatient coverage
+    outpatient_coverage_percentage = Column(Float, nullable=True)  # e.g. 0.0, 0.85, 1.0 for 0%, 85%, 100%
+    outpatient_price_usd = Column(Numeric(10, 2), nullable=True)  # Additional price for this outpatient option
+
+    policy = relationship("InsurancePolicy", backref="tariffs")
+
+
+class PlanCriteria(Base):
+    __tablename__ = "plan_criteria"
+
+    criteria_id = Column(Integer, primary_key=True, autoincrement=True)
+    policy_id = Column(Integer, ForeignKey("insurance_policies.policy_id"), nullable=False)
+    criteria_data = Column(JSONB, nullable=False, default={})
+
+    # Relationship
+    policy = relationship("InsurancePolicy", backref="criteria")

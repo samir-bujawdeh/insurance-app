@@ -9,15 +9,19 @@ import {
   Alert,
   Animated,
   Dimensions,
-  Platform
+  Platform,
+  Switch
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 
 const ProfileScreen = () => {
   const { user, logout } = useContext(AuthContext);
+  const { theme, themeMode, isDark, setThemeMode } = useTheme();
+  const styles = ProfileScreenStyles(theme);
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -64,7 +68,7 @@ const ProfileScreen = () => {
     >
       <View style={styles.profileItemLeft}>
         <View style={styles.iconContainer}>
-          <Ionicons name={icon as any} size={24} color="#764ba2" />
+          <Ionicons name={icon as any} size={24} color={theme.secondary} />
         </View>
         <View style={styles.profileItemText}>
           <Text style={styles.profileItemTitle}>{title}</Text>
@@ -72,7 +76,7 @@ const ProfileScreen = () => {
         </View>
       </View>
       {showArrow && (
-        <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+        <Ionicons name="chevron-forward" size={20} color={theme.textTertiary} />
       )}
     </TouchableOpacity>
   );
@@ -92,7 +96,7 @@ const ProfileScreen = () => {
         >
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Ionicons name="person" size={40} color="#764ba2" />
+              <Ionicons name="person" size={40} color={theme.secondary} />
             </View>
           </View>
           <Text style={styles.userName}>{user?.name || "User"}</Text>
@@ -163,6 +167,70 @@ const ProfileScreen = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>App</Text>
             <View style={styles.sectionContent}>
+              <View style={styles.profileItem}>
+                <View style={styles.profileItemLeft}>
+                  <View style={styles.iconContainer}>
+                    <Ionicons 
+                      name={isDark ? "moon" : "sunny-outline"} 
+                      size={24} 
+                      color={theme.secondary} 
+                    />
+                  </View>
+                  <View style={styles.profileItemText}>
+                    <Text style={styles.profileItemTitle}>Dark Mode</Text>
+                    <Text style={styles.profileItemSubtitle}>
+                      {themeMode === "system" 
+                        ? "Following system" 
+                        : isDark 
+                        ? "Enabled" 
+                        : "Disabled"}
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={isDark}
+                  onValueChange={(value) => {
+                    setThemeMode(value ? "dark" : "light");
+                  }}
+                  trackColor={{ false: theme.border, true: theme.buttonPrimary }}
+                  thumbColor={isDark ? theme.textInverse : theme.surface}
+                />
+              </View>
+              <TouchableOpacity 
+                style={styles.profileItem}
+                onPress={() => {
+                  const options = ["Light", "Dark", "System (Follow Device)"];
+                  Alert.alert(
+                    "Theme Mode",
+                    "Choose theme mode:",
+                    [
+                      ...options.map((option) => ({
+                        text: option,
+                        onPress: () => {
+                          if (option === "Light") setThemeMode("light");
+                          else if (option === "Dark") setThemeMode("dark");
+                          else setThemeMode("system");
+                        },
+                      })),
+                      { text: "Cancel", style: "cancel" },
+                    ]
+                  );
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.profileItemLeft}>
+                  <View style={styles.iconContainer}>
+                    <Ionicons name="color-palette-outline" size={24} color={theme.secondary} />
+                  </View>
+                  <View style={styles.profileItemText}>
+                    <Text style={styles.profileItemTitle}>Theme Mode</Text>
+                    <Text style={styles.profileItemSubtitle}>
+                      Current: {themeMode === "system" ? "System" : themeMode === "dark" ? "Dark" : "Light"}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.textTertiary} />
+              </TouchableOpacity>
               <ProfileItem
                 icon="information-circle-outline"
                 title="About"
@@ -184,7 +252,7 @@ const ProfileScreen = () => {
             onPress={handleLogout}
             activeOpacity={0.8}
           >
-            <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
+            <Ionicons name="log-out-outline" size={24} color={theme.error} />
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </Animated.View>
@@ -193,14 +261,14 @@ const ProfileScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const ProfileScreenStyles = (theme: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: theme.background,
   },
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: theme.background,
     paddingTop: 36,
     paddingBottom: 36,
   },
@@ -208,7 +276,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 40,
     paddingHorizontal: 24,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
     marginBottom: 20,
   },
   avatarContainer: {
@@ -218,24 +286,24 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#F3E5F5",
+    backgroundColor: theme.secondary + "15", // Light tint of secondary color
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    borderColor: "#764ba2",
+    borderColor: theme.secondary,
   },
   userName: {
     fontSize: 24,
     fontWeight: "700",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#1C1C1E",
+    color: theme.text,
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 16,
     fontWeight: "400",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#666",
+    color: theme.textTertiary,
   },
   sectionsContainer: {
     paddingHorizontal: 24,
@@ -248,12 +316,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#1C1C1E",
+    color: theme.text,
     marginBottom: 12,
     marginLeft: 4,
   },
   sectionContent: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
     borderRadius: 12,
     overflow: "hidden",
     shadowColor: "#000",
@@ -269,7 +337,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: theme.borderLight,
   },
   profileItemLeft: {
     flexDirection: "row",
@@ -280,7 +348,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#F3E5F5",
+    backgroundColor: theme.secondary + "15", // Light tint of secondary color
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
@@ -292,20 +360,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#1C1C1E",
+    color: theme.text,
     marginBottom: 2,
   },
   profileItemSubtitle: {
     fontSize: 14,
     fontWeight: "400",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#666",
+    color: theme.textTertiary,
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
     borderRadius: 12,
     paddingVertical: 16,
     marginTop: 20,
@@ -319,7 +387,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#FF3B30",
+    color: theme.error,
     marginLeft: 8,
   },
 });

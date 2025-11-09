@@ -18,12 +18,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { loginUser, getCurrentUser } from "../api/auth";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "../context/ThemeContext";
 
 const { width, height } = Dimensions.get("window");
 
 const LoginScreen = () => {
   const { login } = useContext(AuthContext);
   const navigation = useNavigation();
+  const { theme } = useTheme();
+  const styles = LoginScreenStyles(theme);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -127,17 +130,17 @@ const LoginScreen = () => {
               {/* Email Input */}
               <View style={[
                 styles.inputContainer,
-                emailFocused && styles.inputContainerFocused
+                emailFocused && [styles.inputContainerFocused, { borderColor: theme.inputBorderFocused }]
               ]}>
                 <Ionicons 
                   name="mail-outline" 
                   size={24} 
-                  color={emailFocused ? "#764ba2" : "#999"} 
+                  color={emailFocused ? theme.inputBorderFocused : theme.inputPlaceholder} 
                   style={styles.inputIcon}
                 />
                 <TextInput
                   placeholder="Email address"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.inputPlaceholder}
                   value={email}
                   onChangeText={setEmail}
                   onFocus={() => setEmailFocused(true)}
@@ -152,17 +155,17 @@ const LoginScreen = () => {
               {/* Password Input */}
               <View style={[
                 styles.inputContainer,
-                passwordFocused && styles.inputContainerFocused
+                passwordFocused && [styles.inputContainerFocused, { borderColor: theme.inputBorderFocused }]
               ]}>
                 <Ionicons 
                   name="lock-closed-outline" 
                   size={24} 
-                  color={passwordFocused ? "#764ba2" : "#999"} 
+                  color={passwordFocused ? theme.inputBorderFocused : theme.inputPlaceholder} 
                   style={styles.inputIcon}
                 />
                 <TextInput
                   placeholder="Password"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.inputPlaceholder}
                   value={password}
                   onChangeText={setPassword}
                   onFocus={() => setPasswordFocused(true)}
@@ -177,7 +180,7 @@ const LoginScreen = () => {
                   <Ionicons 
                     name={showPassword ? "eye-off-outline" : "eye-outline"} 
                     size={24} 
-                    color="#999" 
+                    color={theme.inputPlaceholder} 
                   />
                 </TouchableOpacity>
               </View>
@@ -190,7 +193,7 @@ const LoginScreen = () => {
                 style={styles.loginButton}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={theme.textInverse} size="small" />
                 ) : (
                   <Text style={styles.buttonText}>Sign In</Text>
                 )}
@@ -215,10 +218,10 @@ const LoginScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const LoginScreenStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
   },
   keyboardView: {
     flex: 1,
@@ -238,7 +241,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: "700",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#1C1C1E",
+    color: theme.text,
     marginBottom: 12,
     letterSpacing: 0.5,
   },
@@ -246,7 +249,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "400",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#0D47A1",
+    color: theme.accent,
   },
   formContainer: {
     marginBottom: 0,
@@ -255,17 +258,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#764ba2",
+    borderColor: theme.inputBorder,
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 4,
     marginBottom: 16,
-    backgroundColor: "#F5F7FA",
+    backgroundColor: theme.inputBackground,
   },
   inputContainerFocused: {
-    backgroundColor: "#F5F7FA",
+    backgroundColor: theme.inputBackground,
     borderWidth: 1,
-    borderColor: "#764ba2",
   },
   inputIcon: {
     marginRight: 12,
@@ -275,7 +277,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "400",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-    color: "#333",
+    color: theme.text,
     paddingVertical: 16,
   },
   passwordInput: {
@@ -286,7 +288,7 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     borderRadius: 12,
-    backgroundColor: "#764ba2",
+    backgroundColor: theme.buttonPrimary,
     paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -294,7 +296,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   buttonText: {
-    color: "#fff",
+    color: theme.textInverse,
     fontSize: 18,
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
@@ -305,13 +307,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   footerText: {
-    color: "#666",
+    color: theme.textTertiary,
     fontSize: 14,
     fontWeight: "400",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
   },
   linkText: {
-    color: "#764ba2",
+    color: theme.buttonPrimary,
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
   },

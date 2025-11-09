@@ -14,11 +14,14 @@ import { useNavigation } from "@react-navigation/native";
 import { CommonActions } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTheme } from "../context/ThemeContext";
 
 const HomeScreen = () => {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const styles = HomeScreenStyles(theme);
   
   // Animation values for content
   const quickActionsOpacity = useRef(new Animated.Value(0)).current;
@@ -101,7 +104,7 @@ const HomeScreen = () => {
       onPress: () => void;
       color: string;
     }) => (
-      <TouchableOpacity style={styles.actionCard} onPress={onPress}>
+      <TouchableOpacity style={[styles.actionCard, { backgroundColor: theme.actionCard }]} onPress={onPress}>
         <View
           style={[
             styles.actionIconContainer,
@@ -110,8 +113,8 @@ const HomeScreen = () => {
         >
           <Ionicons name={icon as any} size={28} color={color} />
         </View>
-        <Text style={styles.actionTitle}>{title}</Text>
-        <Text style={styles.actionSubtitle}>{subtitle}</Text>
+        <Text style={[styles.actionTitle, { color: theme.text }]}>{title}</Text>
+        <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
       </TouchableOpacity>
     )
   );
@@ -120,7 +123,7 @@ const HomeScreen = () => {
     <SafeAreaViewContext style={styles.safeArea} edges={['left', 'right']}>
       {/* Full Background Gradient */}
       <LinearGradient
-        colors={["#667eea", "#764ba2"]}
+        colors={[theme.gradientStart, theme.gradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.fullBackground}
@@ -129,12 +132,12 @@ const HomeScreen = () => {
         <View style={styles.fixedHeader}>
           <View style={styles.headerContent}>
             <Animated.View style={[styles.headerTextContainer, { opacity: headerTextOpacity }]}>
-              <Text style={styles.headerGreeting}>Welcome</Text>
-              <Text style={styles.headerUserName}>{user?.name || "User"}</Text>
+              <Text style={[styles.headerGreeting, { color: theme.overlay }]}>Welcome</Text>
+              <Text style={[styles.headerUserName, { color: theme.textInverse }]}>{user?.name || "User"}</Text>
             </Animated.View>
             <Animated.View style={{ opacity: headerIconOpacity }}>
-              <View style={styles.headerProfileAvatar}>
-                <Ionicons name="person" size={24} color="#FFFFFF" />
+              <View style={[styles.headerProfileAvatar, { backgroundColor: theme.overlayDark, borderColor: theme.overlayMedium }]}>
+                <Ionicons name="person" size={24} color={theme.textInverse} />
               </View>
             </Animated.View>
           </View>
@@ -158,7 +161,7 @@ const HomeScreen = () => {
           scrollEventThrottle={16}
         >
           {/* White Content Card */}
-          <View style={styles.contentCard}>
+          <View style={[styles.contentCard, { backgroundColor: theme.card }]}>
 
         {/* Quick Actions Section with animation */}
         <Animated.View
@@ -220,22 +223,22 @@ const HomeScreen = () => {
             },
           ]}
         >
-          <TouchableOpacity style={styles.promoBanner}>
+          <TouchableOpacity style={[styles.promoBanner, { backgroundColor: theme.promoBackground }]}>
             <View style={styles.promoContent}>
               <View style={styles.promoTextContainer}>
-                <Text style={styles.promoTitle}>Compare Feature</Text>
-                <Text style={styles.promoSubtitle}>
+                <Text style={[styles.promoTitle, { color: theme.promoText }]}>Compare Feature</Text>
+                <Text style={[styles.promoSubtitle, { color: theme.promoTitle }]}>
                   Compare insurance policies and find the best deals
                 </Text>
-                <View style={styles.promoButton}>
+                <View style={[styles.promoButton, { backgroundColor: theme.promoButton }]}>
                   <Text style={styles.promoButtonText}>Try Now</Text>
-                  <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                  <Ionicons name="arrow-forward" size={16} color={theme.textInverse} />
                 </View>
               </View>
               <Ionicons
                 name="analytics"
                 size={64}
-                color="#1976D2"
+                color={theme.promoButton}
                 style={styles.promoIcon}
               />
             </View>
@@ -245,16 +248,16 @@ const HomeScreen = () => {
         </ScrollView>
         
         {/* Bottom white section positioned absolutely */}
-        <View style={styles.bottomWhiteSection} />
+        <View style={[styles.bottomWhiteSection, { backgroundColor: theme.card }]} />
       </LinearGradient>
     </SafeAreaViewContext>
   );
 };
 
-const styles = StyleSheet.create({
+const HomeScreenStyles = (theme: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F5F7FA",
+    backgroundColor: theme.background,
     paddingTop: 0,
     paddingBottom: 0, // No bottom padding
   },
@@ -280,7 +283,6 @@ const styles = StyleSheet.create({
     elevation: 10, // Android elevation
   },
   contentCard: {
-    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 30, // Increased from 20
     borderTopRightRadius: 30, // Increased from 20
     marginTop: 140, // More space for header
@@ -301,13 +303,11 @@ const styles = StyleSheet.create({
   },
   headerGreeting: {
     fontSize: 22, // Increased from 16
-    color: "rgba(255,255,255,0.9)",
     marginBottom: 4,
   },
   headerUserName: {
     fontSize: 34, // Increased from 24
     fontWeight: "700",
-    color: "#FFFFFF",
   },
   headerProfileButton: {
     padding: 8, // Increased padding for better touch area
@@ -317,11 +317,9 @@ const styles = StyleSheet.create({
     width: 52, // Increased from 48
     height: 52, // Increased from 48
     borderRadius: 26, // Increased from 24
-    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
   },
   section: {
     paddingHorizontal: 20,
@@ -330,7 +328,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1C1C1E",
     marginBottom: 16,
   },
   actionsGrid: {
@@ -340,7 +337,6 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     width: "47.5%",
-    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 20,
     alignItems: "center",
@@ -349,6 +345,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: theme.borderLight,
   },
   actionIconContainer: {
     width: 64,
@@ -361,17 +359,14 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1C1C1E",
     marginBottom: 4,
     textAlign: "center",
   },
   actionSubtitle: {
     fontSize: 14,
-    color: "#8E8E93",
     textAlign: "center",
   },
   promoBanner: {
-    backgroundColor: "#E3F2FD",
     borderRadius: 16,
     padding: 20,
     overflow: "hidden",
@@ -386,19 +381,16 @@ const styles = StyleSheet.create({
   },
   promoTitle: {
     fontSize: 14,
-    color: "#1565C0",
     fontWeight: "600",
     marginBottom: 8,
   },
   promoSubtitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#0D47A1",
     marginBottom: 12,
   },
   promoButton: {
     flexDirection: "row",
-    backgroundColor: "#1976D2",
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -406,7 +398,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   promoButtonText: {
-    color: "#FFFFFF",
+    color: theme.textInverse,
     fontSize: 14,
     fontWeight: "600",
   },
@@ -418,7 +410,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#FFFFFF",
     height: 200, // Height to cover when scrolling down
     zIndex: 5, // Same as header, below scroll content
     elevation: 5,

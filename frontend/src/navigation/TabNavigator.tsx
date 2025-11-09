@@ -14,6 +14,7 @@ import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur"; // ✨ Native blur for iOS
 import { useNotifications } from "../context/NotificationContext";
+import { useTheme } from "../context/ThemeContext";
 
 import HomeScreen from "../screens/HomeScreen";
 import PoliciesScreen from "../screens/PoliciesScreen";
@@ -25,7 +26,6 @@ const Tab = createBottomTabNavigator();
 const { width } = Dimensions.get("window");
 const tabRoutes = ["Home", "Policies", "Marketplace", "Claims", "Notifications"];
 const tabWidth = (width - 56) / tabRoutes.length;
-const isDarkMode = Appearance.getColorScheme() === "dark";
 
 const TabNavigator = () => {
   const indicatorPosition = useRef(new Animated.Value(0)).current;
@@ -33,6 +33,8 @@ const TabNavigator = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { unreadCount, refreshNotifications } = useNotifications();
   const navigation = useNavigation<any>();
+  const { theme, isDark } = useTheme();
+  const styles = TabNavigatorStyles(theme);
 
   useEffect(() => {
     // Initial fade in when component mounts
@@ -107,12 +109,12 @@ const TabNavigator = () => {
           >
             {Platform.OS === "ios" ? (
               <BlurView
-                tint={isDarkMode ? "dark" : "light"}
+                tint={isDark ? "dark" : "light"}
                 intensity={30}
-                style={styles.indicator}
+                style={[styles.indicator, { borderColor: theme.overlayMedium, shadowColor: theme.secondary }]}
               />
             ) : (
-              <View style={[styles.indicator, { backgroundColor: "rgba(255,255,255,0.3)" }]} />
+              <View style={[styles.indicator, { backgroundColor: theme.overlayMedium, borderColor: theme.overlayMedium, shadowColor: theme.secondary }]} />
             )}
           </Animated.View>
 
@@ -144,10 +146,10 @@ const TabNavigator = () => {
                         : (`${iconMap[route.name]}-outline` as any)
                     }
                     size={24}
-                    color={isFocused ? "#764ba2" : "#8E8E93"}
+                    color={isFocused ? theme.tabBarActive : theme.tabBarInactive}
                   />
                   {isNotificationsTab && (unreadCount ?? 0) > 0 && (
-                    <View style={styles.badge}>
+                    <View style={[styles.badge, { borderColor: theme.surface }]}>
                       <Text style={styles.badgeText}>
                         {(unreadCount ?? 0) > 99 ? "99+" : (unreadCount ?? 0)}
                       </Text>
@@ -178,7 +180,7 @@ const TabNavigator = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const TabNavigatorStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
   },
   pillContainer: {
     flexDirection: "row",
-    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    backgroundColor: theme.tabBarBackground,
     borderRadius: 30,
     height: 60,
     paddingHorizontal: 8,
@@ -205,9 +207,9 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
+    borderColor: theme.overlayMedium,
     ...(Platform.OS === "ios" && {
-      backgroundColor: "rgba(255, 255, 255, 0.75)",
+      backgroundColor: theme.overlayLight,
     }),
   },
   indicatorWrapper: {
@@ -223,8 +225,6 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 25,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.4)",
-    shadowColor: "#764ba2",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -6,
     right: -8,
-    backgroundColor: "#FF3B30",
+    backgroundColor: theme.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -254,7 +254,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: Platform.OS === "ios" ? "rgba(255,255,255,0.75)" : "#FFFFFF",
     zIndex: 3,
   },
   badgeText: {
