@@ -1,27 +1,22 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getPolicies } from "@/api/policies";
-import { getCriteriaByPolicy, createOrUpdateCriteria, deleteCriteria, PlanCriteriaData, CoverageItem } from "@/api/criteria";
+import { getCriteriaByPolicy, createOrUpdateCriteria, deleteCriteria, InPatientCriteriaData, OutPatientCriteriaData, CoverageItem } from "@/api/criteria";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Search, Save, Trash2 } from "lucide-react";
 
 // Helper function to create default coverage item
 const defaultCoverageItem = (): CoverageItem => ({
-  coverage_type: "covered",
-  coverage_amount: undefined,
-  currency: "USD",
-  waiting_period_days: undefined,
   notes: "",
 });
 
-// Helper function to create default criteria data
-const defaultCriteriaData = (): PlanCriteriaData => ({
+// Helper function to create default in-patient criteria data
+const defaultInPatientCriteriaData = (): InPatientCriteriaData => ({
   in_patient: {
     general_coverages: {
       annual_limit: defaultCoverageItem(),
@@ -80,6 +75,10 @@ const defaultCriteriaData = (): PlanCriteriaData => ({
       prescribed_medicines_drugs: defaultCoverageItem(),
     },
   },
+});
+
+// Helper function to create default out-patient criteria data
+const defaultOutPatientCriteriaData = (): OutPatientCriteriaData => ({
   out_patient: {
     outpatient_annual_limit: defaultCoverageItem(),
     outpatient_coverage: defaultCoverageItem(),
@@ -94,7 +93,8 @@ const defaultCriteriaData = (): PlanCriteriaData => ({
 
 export function PlanCriteriaPage() {
   const [selectedPolicyId, setSelectedPolicyId] = useState<number | null>(null);
-  const [criteriaData, setCriteriaData] = useState<PlanCriteriaData>(defaultCriteriaData());
+  const [inPatientCriteriaData, setInPatientCriteriaData] = useState<InPatientCriteriaData>(defaultInPatientCriteriaData());
+  const [outPatientCriteriaData, setOutPatientCriteriaData] = useState<OutPatientCriteriaData>(defaultOutPatientCriteriaData());
   const [search, setSearch] = useState("");
 
   const queryClient = useQueryClient();
@@ -104,7 +104,7 @@ export function PlanCriteriaPage() {
     queryFn: () => getPolicies({ page: 1, page_size: 100 }),
   });
 
-  const { data: existingCriteria, isLoading, error } = useQuery({
+  const { data: existingCriteria, isLoading } = useQuery({
     queryKey: ["criteria", selectedPolicyId],
     queryFn: () => getCriteriaByPolicy(selectedPolicyId!),
     enabled: !!selectedPolicyId,
@@ -117,16 +117,21 @@ export function PlanCriteriaPage() {
 
   useEffect(() => {
     if (selectedPolicyId) {
-      if (existingCriteria?.criteria_data) {
-        setCriteriaData(existingCriteria.criteria_data);
+      if (existingCriteria) {
+        setInPatientCriteriaData(existingCriteria.criteria_data || defaultInPatientCriteriaData());
+        setOutPatientCriteriaData(existingCriteria.outpatient_criteria_data || defaultOutPatientCriteriaData());
       } else {
-        setCriteriaData(defaultCriteriaData());
+        setInPatientCriteriaData(defaultInPatientCriteriaData());
+        setOutPatientCriteriaData(defaultOutPatientCriteriaData());
       }
     }
   }, [selectedPolicyId, existingCriteria]);
 
   const saveMutation = useMutation({
-    mutationFn: (data: PlanCriteriaData) => createOrUpdateCriteria(selectedPolicyId!, { criteria_data: data }),
+    mutationFn: () => createOrUpdateCriteria(selectedPolicyId!, { 
+      criteria_data: inPatientCriteriaData,
+      outpatient_criteria_data: outPatientCriteriaData
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["criteria"] });
       toast.success("Plan criteria saved successfully");
@@ -140,7 +145,8 @@ export function PlanCriteriaPage() {
     mutationFn: () => deleteCriteria(selectedPolicyId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["criteria"] });
-      setCriteriaData(defaultCriteriaData());
+      setInPatientCriteriaData(defaultInPatientCriteriaData());
+      setOutPatientCriteriaData(defaultOutPatientCriteriaData());
       toast.success("Plan criteria deleted successfully");
     },
   });
@@ -154,7 +160,7 @@ export function PlanCriteriaPage() {
       toast.error("Please select a policy first");
       return;
     }
-    saveMutation.mutate(criteriaData);
+    saveMutation.mutate();
   };
 
   const handleDelete = () => {
@@ -172,19 +178,19 @@ export function PlanCriteriaPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Plan Criteria Management</h1>
         <p className="text-muted-foreground">
-          Configure coverage criteria for insurance policies
+          Configure coverage criteria for insurance plans
         </p>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Select Policy</CardTitle>
+            <CardTitle>Select Plan</CardTitle>
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search policies..."
+                  placeholder="Search plans..."
                   className="pl-8 w-64"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -243,7 +249,12 @@ export function PlanCriteriaPage() {
             </div>
           </div>
 
-          <CriteriaForm data={criteriaData} onChange={setCriteriaData} />
+          <CriteriaForm 
+            inPatientData={inPatientCriteriaData} 
+            outPatientData={outPatientCriteriaData}
+            onInPatientChange={setInPatientCriteriaData}
+            onOutPatientChange={setOutPatientCriteriaData}
+          />
         </div>
       )}
     </div>
@@ -262,89 +273,37 @@ function CoverageItemInput({
   return (
     <div className="space-y-2 p-4 border rounded-lg">
       <div className="font-semibold text-sm">{label}</div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Coverage Type *</Label>
-          <Select
-            value={value.coverage_type}
-            onChange={(e) => onChange({ ...value, coverage_type: e.target.value as any })}
-          >
-            <option value="covered">Covered</option>
-            <option value="limited">Limited</option>
-            <option value="conditional">Conditional</option>
-          </Select>
-        </div>
-        {(value.coverage_type === "limited" || value.coverage_type === "conditional") && (
-          <>
-            <div>
-              <Label>Coverage Amount</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={value.coverage_amount || ""}
-                onChange={(e) =>
-                  onChange({
-                    ...value,
-                    coverage_amount: e.target.value ? parseFloat(e.target.value) : undefined,
-                  })
-                }
-              />
-            </div>
-            <div>
-              <Label>Currency</Label>
-              <Select
-                value={value.currency || "USD"}
-                onChange={(e) => onChange({ ...value, currency: e.target.value })}
-              >
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
-              </Select>
-            </div>
-            {value.coverage_type === "conditional" && (
-              <div>
-                <Label>Waiting Period (Days)</Label>
-                <Input
-                  type="number"
-                  value={value.waiting_period_days || ""}
-                  onChange={(e) =>
-                    onChange({
-                      ...value,
-                      waiting_period_days: e.target.value ? parseInt(e.target.value) : undefined,
-                    })
-                  }
-                />
-              </div>
-            )}
-          </>
-        )}
-        <div className="col-span-2">
-          <Label>Notes</Label>
-          <Textarea
-            value={value.notes || ""}
-            onChange={(e) => onChange({ ...value, notes: e.target.value })}
-            rows={2}
-          />
-        </div>
+      <div>
+        <Label>Notes</Label>
+        <Textarea
+          value={value.notes || ""}
+          onChange={(e) => onChange({ ...value, notes: e.target.value })}
+          rows={3}
+          placeholder="Enter notes for this coverage item..."
+        />
       </div>
     </div>
   );
 }
 
 function CriteriaForm({
-  data,
-  onChange,
+  inPatientData,
+  outPatientData,
+  onInPatientChange,
+  onOutPatientChange,
 }: {
-  data: PlanCriteriaData;
-  onChange: (data: PlanCriteriaData) => void;
+  inPatientData: InPatientCriteriaData;
+  outPatientData: OutPatientCriteriaData;
+  onInPatientChange: (data: InPatientCriteriaData) => void;
+  onOutPatientChange: (data: OutPatientCriteriaData) => void;
 }) {
   const updateInPatientGeneral = (key: string, value: CoverageItem) => {
-    onChange({
-      ...data,
+    onInPatientChange({
+      ...inPatientData,
       in_patient: {
-        ...data.in_patient,
+        ...inPatientData.in_patient,
         general_coverages: {
-          ...data.in_patient.general_coverages,
+          ...inPatientData.in_patient.general_coverages,
           [key]: value,
         },
       },
@@ -352,12 +311,12 @@ function CriteriaForm({
   };
 
   const updateInPatientCase = (key: string, value: CoverageItem) => {
-    onChange({
-      ...data,
+    onInPatientChange({
+      ...inPatientData,
       in_patient: {
-        ...data.in_patient,
+        ...inPatientData.in_patient,
         case_coverages: {
-          ...data.in_patient.case_coverages,
+          ...inPatientData.in_patient.case_coverages,
           [key]: value,
         },
       },
@@ -365,67 +324,72 @@ function CriteriaForm({
   };
 
   const updateOutPatient = (key: string, value: CoverageItem) => {
-    onChange({
-      ...data,
+    onOutPatientChange({
+      ...outPatientData,
       out_patient: {
-        ...data.out_patient,
+        ...outPatientData.out_patient,
         [key]: value,
       },
     });
   };
 
   return (
-    <div className="space-y-6">
-      {/* In-Patient General Coverages */}
-      <Card>
-        <CardHeader>
-          <CardTitle>In-Patient - General Coverages</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {Object.entries(data.in_patient.general_coverages).map(([key, value]) => (
-            <CoverageItemInput
-              key={key}
-              label={key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-              value={value}
-              onChange={(newValue) => updateInPatientGeneral(key, newValue)}
-            />
-          ))}
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-2 gap-6">
+      {/* Left Column: In-Patient Coverages */}
+      <div className="space-y-6">
+        {/* In-Patient General Coverages */}
+        <Card>
+          <CardHeader>
+            <CardTitle>In-Patient - General Coverages</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {Object.entries(inPatientData.in_patient.general_coverages).map(([key, value]) => (
+              <CoverageItemInput
+                key={key}
+                label={key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                value={value}
+                onChange={(newValue) => updateInPatientGeneral(key, newValue)}
+              />
+            ))}
+          </CardContent>
+        </Card>
 
-      {/* In-Patient Case Coverages */}
-      <Card>
-        <CardHeader>
-          <CardTitle>In-Patient - Case Coverages</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {Object.entries(data.in_patient.case_coverages).map(([key, value]) => (
-            <CoverageItemInput
-              key={key}
-              label={key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-              value={value}
-              onChange={(newValue) => updateInPatientCase(key, newValue)}
-            />
-          ))}
-        </CardContent>
-      </Card>
+        {/* In-Patient Case Coverages */}
+        <Card>
+          <CardHeader>
+            <CardTitle>In-Patient - Case Coverages</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {Object.entries(inPatientData.in_patient.case_coverages).map(([key, value]) => (
+              <CoverageItemInput
+                key={key}
+                label={key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                value={value}
+                onChange={(newValue) => updateInPatientCase(key, newValue)}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Out-Patient Coverages */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Out-Patient Coverages</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {Object.entries(data.out_patient).map(([key, value]) => (
-            <CoverageItemInput
-              key={key}
-              label={key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-              value={value}
-              onChange={(newValue) => updateOutPatient(key, newValue)}
-            />
-          ))}
-        </CardContent>
-      </Card>
+      {/* Right Column: Out-Patient Coverages */}
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Out-Patient Coverages</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {Object.entries(outPatientData.out_patient).map(([key, value]) => (
+              <CoverageItemInput
+                key={key}
+                label={key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                value={value}
+                onChange={(newValue) => updateOutPatient(key, newValue)}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

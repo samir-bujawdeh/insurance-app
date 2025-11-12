@@ -1,5 +1,5 @@
 import api from "./axios";
-import { InsurancePolicy, PaginatedResponse } from "@/types";
+import { InsurancePlan, PaginatedResponse } from "@/types";
 
 /**
  * Policies management API endpoints
@@ -25,23 +25,23 @@ export interface PolicyCreate {
   contract_pdf_url?: string;
 }
 
-export async function getPolicies(filters?: PolicyFilters): Promise<PaginatedResponse<InsurancePolicy>> {
-  const response = await api.get<PaginatedResponse<InsurancePolicy>>("/admin/policies", { params: filters });
+export async function getPolicies(filters?: PolicyFilters): Promise<PaginatedResponse<InsurancePlan>> {
+  const response = await api.get<PaginatedResponse<InsurancePlan>>("/admin/policies", { params: filters });
   return response.data;
 }
 
-export async function getPolicyById(policyId: number): Promise<InsurancePolicy> {
-  const response = await api.get<InsurancePolicy>(`/admin/policies/${policyId}`);
+export async function getPolicyById(policyId: number): Promise<InsurancePlan> {
+  const response = await api.get<InsurancePlan>(`/admin/policies/${policyId}`);
   return response.data;
 }
 
-export async function createPolicy(data: PolicyCreate): Promise<InsurancePolicy> {
-  const response = await api.post<InsurancePolicy>("/admin/policies", data);
+export async function createPolicy(data: PolicyCreate): Promise<InsurancePlan> {
+  const response = await api.post<InsurancePlan>("/admin/policies", data);
   return response.data;
 }
 
-export async function updatePolicy(policyId: number, data: Partial<PolicyCreate>): Promise<InsurancePolicy> {
-  const response = await api.patch<InsurancePolicy>(`/admin/policies/${policyId}`, data);
+export async function updatePolicy(policyId: number, data: Partial<PolicyCreate>): Promise<InsurancePlan> {
+  const response = await api.patch<InsurancePlan>(`/admin/policies/${policyId}`, data);
   return response.data;
 }
 

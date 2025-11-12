@@ -190,15 +190,15 @@ function ApplicationDetailDialog({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-xs text-muted-foreground">Policy Name</Label>
-                      <p className="font-medium">{application.policy?.name}</p>
+                      <p className="font-medium">{application.plan?.name}</p>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Provider</Label>
-                      <p className="font-medium">{application.policy?.provider?.name}</p>
+                      <p className="font-medium">{application.plan?.provider?.name}</p>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Type</Label>
-                      <p className="font-medium">{application.policy?.insurance_type?.name}</p>
+                      <p className="font-medium">{application.plan?.insurance_type?.name}</p>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Premium</Label>
@@ -208,7 +208,7 @@ function ApplicationDetailDialog({
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Duration</Label>
-                      <p className="font-medium">{application.policy?.duration || "N/A"}</p>
+                      <p className="font-medium">{application.plan?.duration || "N/A"}</p>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Application Date</Label>
@@ -456,13 +456,6 @@ export function ApplicationsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["applications", filters],
     queryFn: () => getApplications(filters),
-    placeholderData: {
-      items: [],
-      total: 0,
-      page: 1,
-      page_size: 10,
-      total_pages: 0,
-    },
   });
 
   const handleViewDetails = (applicationId: number) => {
@@ -537,14 +530,14 @@ export function ApplicationsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="font-medium">
-                          {application.policy?.name || "Unknown Policy"}
+                          {application.plan?.name || "Unknown Policy"}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {application.policy?.insurance_type?.name}
+                          {application.plan?.insurance_type?.name}
                         </div>
                       </TableCell>
                       <TableCell>
-                        {application.policy?.provider?.name || "N/A"}
+                        {application.plan?.provider?.name || "N/A"}
                       </TableCell>
                       <TableCell>
                         {new Date(application.issued_at).toLocaleDateString()}

@@ -185,9 +185,9 @@ def get_dashboard_stats(
         models.InsuranceType.name,
         func.count(models.UserPolicy.user_policy_id).label('count')
     ).join(
-        models.InsurancePolicy, models.InsurancePolicy.type_id == models.InsuranceType.type_id
+        models.InsurancePlan, models.InsurancePlan.type_id == models.InsuranceType.type_id
     ).join(
-        models.UserPolicy, models.UserPolicy.policy_id == models.InsurancePolicy.policy_id
+        models.UserPolicy, models.UserPolicy.policy_id == models.InsurancePlan.policy_id
     ).filter(
         models.UserPolicy.status == models.UserPolicyStatus.active
     ).group_by(
@@ -201,9 +201,9 @@ def get_dashboard_stats(
         models.Provider.name,
         func.count(models.UserPolicy.user_policy_id).label('count')
     ).join(
-        models.InsurancePolicy, models.InsurancePolicy.provider_id == models.Provider.provider_id
+        models.InsurancePlan, models.InsurancePlan.provider_id == models.Provider.provider_id
     ).join(
-        models.UserPolicy, models.UserPolicy.policy_id == models.InsurancePolicy.policy_id
+        models.UserPolicy, models.UserPolicy.policy_id == models.InsurancePlan.policy_id
     ).filter(
         models.UserPolicy.status == models.UserPolicyStatus.active
     ).group_by(
@@ -430,8 +430,8 @@ def create_user_policy(
         )
     
     # Verify policy exists
-    policy = db.query(models.InsurancePolicy).filter(
-        models.InsurancePolicy.policy_id == policy_data.policy_id
+    policy = db.query(models.InsurancePlan).filter(
+        models.InsurancePlan.policy_id == policy_data.policy_id
     ).first()
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
@@ -520,30 +520,30 @@ def get_policies(
     admin_user: models.User = Depends(get_current_admin)
 ):
     """Get paginated list of policies"""
-    query = db.query(models.InsurancePolicy)
+    query = db.query(models.InsurancePlan)
     
     if search:
         query = query.filter(
             or_(
-                models.InsurancePolicy.name.ilike(f"%{search}%"),
-                models.InsurancePolicy.description.ilike(f"%{search}%")
+                models.InsurancePlan.name.ilike(f"%{search}%"),
+                models.InsurancePlan.description.ilike(f"%{search}%")
             )
         )
     
     if status:
-        query = query.filter(models.InsurancePolicy.status == status)
+        query = query.filter(models.InsurancePlan.status == status)
     
     if type_id:
-        query = query.filter(models.InsurancePolicy.type_id == type_id)
+        query = query.filter(models.InsurancePlan.type_id == type_id)
     
     if provider_id:
-        query = query.filter(models.InsurancePolicy.provider_id == provider_id)
+        query = query.filter(models.InsurancePlan.provider_id == provider_id)
     
     total = query.count()
     items = query.offset((page - 1) * page_size).limit(page_size).all()
     
     return {
-        "items": [schemas.InsurancePolicyDetailOut.from_orm(policy) for policy in items],
+        "items": [schemas.InsurancePlanDetailOut.from_orm(policy) for policy in items],
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -551,34 +551,34 @@ def get_policies(
     }
 
 
-@router.get("/policies/{policy_id}", response_model=schemas.InsurancePolicyDetailOut)
+@router.get("/policies/{policy_id}", response_model=schemas.InsurancePlanDetailOut)
 def get_policy(
     policy_id: int,
     db: Session = Depends(get_db),
     admin_user: models.User = Depends(get_current_admin)
 ):
     """Get policy by ID"""
-    policy = db.query(models.InsurancePolicy).filter(models.InsurancePolicy.policy_id == policy_id).first()
+    policy = db.query(models.InsurancePlan).filter(models.InsurancePlan.policy_id == policy_id).first()
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
-    return schemas.InsurancePolicyDetailOut.from_orm(policy)
+    return schemas.InsurancePlanDetailOut.from_orm(policy)
 
 
-@router.post("/policies", response_model=schemas.InsurancePolicyDetailOut)
+@router.post("/policies", response_model=schemas.InsurancePlanDetailOut)
 def create_policy(
-    policy_data: schemas.InsurancePolicyCreate,
+    policy_data: schemas.InsurancePlanCreate,
     db: Session = Depends(get_db),
     admin_user: models.User = Depends(get_current_admin)
 ):
     """Create a new policy"""
-    policy = models.InsurancePolicy(**policy_data.dict())
+    policy = models.InsurancePlan(**policy_data.dict())
     db.add(policy)
     db.commit()
     db.refresh(policy)
-    return schemas.InsurancePolicyDetailOut.from_orm(policy)
+    return schemas.InsurancePlanDetailOut.from_orm(policy)
 
 
-@router.patch("/policies/{policy_id}", response_model=schemas.InsurancePolicyDetailOut)
+@router.patch("/policies/{policy_id}", response_model=schemas.InsurancePlanDetailOut)
 def update_policy(
     policy_id: int,
     policy_update: dict,
@@ -586,7 +586,7 @@ def update_policy(
     admin_user: models.User = Depends(get_current_admin)
 ):
     """Update a policy"""
-    policy = db.query(models.InsurancePolicy).filter(models.InsurancePolicy.policy_id == policy_id).first()
+    policy = db.query(models.InsurancePlan).filter(models.InsurancePlan.policy_id == policy_id).first()
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
     
@@ -596,7 +596,7 @@ def update_policy(
     
     db.commit()
     db.refresh(policy)
-    return schemas.InsurancePolicyDetailOut.from_orm(policy)
+    return schemas.InsurancePlanDetailOut.from_orm(policy)
 
 
 @router.delete("/policies/{policy_id}")
@@ -606,7 +606,7 @@ def delete_policy(
     admin_user: models.User = Depends(get_current_admin)
 ):
     """Delete a policy"""
-    policy = db.query(models.InsurancePolicy).filter(models.InsurancePolicy.policy_id == policy_id).first()
+    policy = db.query(models.InsurancePlan).filter(models.InsurancePlan.policy_id == policy_id).first()
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
     
@@ -831,8 +831,8 @@ def delete_provider(
         raise HTTPException(status_code=404, detail="Provider not found")
     
     # Check if there are any insurance policies associated with this provider
-    policies_count = db.query(models.InsurancePolicy).filter(
-        models.InsurancePolicy.provider_id == provider_id
+    policies_count = db.query(models.InsurancePlan).filter(
+        models.InsurancePlan.provider_id == provider_id
     ).count()
     
     if policies_count > 0:
@@ -868,13 +868,13 @@ def get_applications(
         query = query.filter(models.UserPolicy.status == models.UserPolicyStatus.pending_payment)
     
     # Join with policy for filtering
-    query = query.join(models.InsurancePolicy)
+    query = query.join(models.InsurancePlan)
     
     if policy_type_id:
-        query = query.filter(models.InsurancePolicy.type_id == policy_type_id)
+        query = query.filter(models.InsurancePlan.type_id == policy_type_id)
     
     if provider_id:
-        query = query.filter(models.InsurancePolicy.provider_id == provider_id)
+        query = query.filter(models.InsurancePlan.provider_id == provider_id)
     
     # Search by user name or email
     if search:
@@ -1068,10 +1068,10 @@ def upload_policies(
                 }
                 
                 # Check if policy already exists (by name and provider)
-                existing = db.query(models.InsurancePolicy).filter(
+                existing = db.query(models.InsurancePlan).filter(
                     and_(
-                        models.InsurancePolicy.name == policy_data['name'],
-                        models.InsurancePolicy.provider_id == policy_data['provider_id']
+                        models.InsurancePlan.name == policy_data['name'],
+                        models.InsurancePlan.provider_id == policy_data['provider_id']
                     )
                 ).first()
                 
@@ -1083,7 +1083,7 @@ def upload_policies(
                     records_updated += 1
                 else:
                     # Create new policy
-                    policy = models.InsurancePolicy(**policy_data)
+                    policy = models.InsurancePlan(**policy_data)
                     db.add(policy)
                     records_created += 1
                 
@@ -1111,10 +1111,15 @@ def upload_tariffs(
     db: Session = Depends(get_db),
     admin_user: models.User = Depends(get_current_admin)
 ):
-    """Upload tariff data from CSV or JSON file"""
+    """Upload tariff data from CSV, JSON, or Excel (.xlsx) file"""
     errors = []
     records_processed = 0
     records_created = 0
+    records_updated = 0
+    
+    # Batch size for commits to avoid too many parameters in a single SQL statement
+    # Increased to 100 for better performance - SQLAlchemy can handle this many parameters
+    BATCH_SIZE = 100
     
     try:
         # Parse file based on extension
@@ -1124,61 +1129,233 @@ def upload_tariffs(
             data_list = utils.parse_csv_file(file)
         elif file_extension == 'json':
             data_list = utils.parse_json_file(file)
+        elif file_extension in ['xlsx', 'xls']:
+            if file_extension == 'xls':
+                raise HTTPException(
+                    status_code=400,
+                    detail="Old Excel format (.xls) is not supported. Please convert to .xlsx format."
+                )
+            data_list = utils.parse_excel_file(file)
         else:
             raise HTTPException(
                 status_code=400,
-                detail="Invalid file type. Only CSV and JSON files are supported."
+                detail="Invalid file type. Only CSV, JSON, and Excel (.xlsx) files are supported."
             )
+        
+        # Pre-load all existing tariffs into memory for fast duplicate checking
+        # This avoids a database query for every single record
+        print(f"Pre-loading existing tariffs for duplicate checking...")
+        existing_tariffs_map = {}
+        all_existing_tariffs = db.query(models.Tariff).all()
+        for tariff in all_existing_tariffs:
+            # Create a unique key for duplicate checking
+            key = (
+                tariff.policy_id,
+                tariff.age_min,
+                tariff.age_max,
+                tariff.class_type,
+                tariff.family_min,
+                tariff.family_max,
+                tariff.outpatient_coverage_percentage
+            )
+            existing_tariffs_map[key] = tariff
+        print(f"Loaded {len(existing_tariffs_map)} existing tariffs into memory")
         
         # Process each record
         for idx, data in enumerate(data_list):
             records_processed += 1
             try:
+                # Normalize data keys (handle case variations and spaces)
+                normalized_data = {}
+                for key, value in data.items():
+                    # Normalize key: lowercase, replace spaces/underscores/dashes with underscores
+                    normalized_key = str(key).strip().lower().replace(' ', '_').replace('-', '_')
+                    
+                    # Handle common column name variations
+                    # Map plan_id to policy_id
+                    if normalized_key == 'plan_id':
+                        normalized_key = 'policy_id'
+                    
+                    normalized_data[normalized_key] = value
+                
+                # Convert string values to appropriate types first (before validation)
+                def safe_int(value, default=None):
+                    if value is None or value == '':
+                        return default
+                    try:
+                        # Handle Excel numeric types and strings
+                        if isinstance(value, (int, float)):
+                            return int(value)
+                        # Convert string to number
+                        return int(float(str(value).strip()))
+                    except (ValueError, TypeError, AttributeError):
+                        return default
+                
+                # Pre-convert numeric fields for validation
+                if 'policy_id' in normalized_data:
+                    normalized_data['policy_id'] = safe_int(normalized_data.get('policy_id'))
+                if 'age_min' in normalized_data:
+                    normalized_data['age_min'] = safe_int(normalized_data.get('age_min'))
+                if 'age_max' in normalized_data:
+                    normalized_data['age_max'] = safe_int(normalized_data.get('age_max'))
+                if 'family_min' in normalized_data:
+                    normalized_data['family_min'] = safe_int(normalized_data.get('family_min'), 1)
+                if 'family_max' in normalized_data:
+                    normalized_data['family_max'] = safe_int(normalized_data.get('family_max'), 1)
+                
                 # Validate data
-                is_valid, error_msg = utils.validate_tariff_data(data, db)
+                is_valid, error_msg = utils.validate_tariff_data(normalized_data, db)
                 if not is_valid:
                     errors.append(f"Row {idx + 1}: {error_msg}")
                     continue
                 
-                # Convert string values to appropriate types
                 def safe_float(value):
-                    if value and value != '':
-                        try:
-                            return float(value)
-                        except (ValueError, TypeError):
-                            return None
-                    return None
+                    if value is None or value == '':
+                        return None
+                    try:
+                        return float(value)
+                    except (ValueError, TypeError):
+                        return None
+                
+                def safe_percentage(value):
+                    """Convert percentage value (1-100) to decimal (0-1) format"""
+                    if value is None or value == '':
+                        return None
+                    try:
+                        percentage = float(value)
+                        # If value is > 1, assume it's a percentage (1-100) and convert to decimal (0-1)
+                        if percentage > 1:
+                            return percentage / 100.0
+                        # If value is <= 1, assume it's already in decimal format (0-1)
+                        return percentage
+                    except (ValueError, TypeError):
+                        return None
                 
                 tariff_data = {
-                    'policy_id': int(data['policy_id']),
-                    'age_min': int(data['age_min']),
-                    'age_max': int(data['age_max']),
-                    'class_type': data['class_type'],
-                    'family_type': data.get('family_type') or None,
-                    'family_min': int(data.get('family_min', 1)),
-                    'family_max': int(data.get('family_max', 1)),
-                    'inpatient_usd': safe_float(data.get('inpatient_usd')),
-                    'total_usd': safe_float(data.get('total_usd')),
-                    'outpatient_coverage_percentage': safe_float(data.get('outpatient_coverage_percentage')),
-                    'outpatient_price_usd': safe_float(data.get('outpatient_price_usd'))
+                    'policy_id': normalized_data.get('policy_id'),  # Already converted above
+                    'age_min': normalized_data.get('age_min'),  # Already converted above
+                    'age_max': normalized_data.get('age_max'),  # Already converted above
+                    'class_type': str(normalized_data.get('class_type', '')).strip(),
+                    'family_type': str(normalized_data.get('family_type', '')).strip() if normalized_data.get('family_type') else None,
+                    'family_min': normalized_data.get('family_min', 1),  # Already converted above
+                    'family_max': normalized_data.get('family_max', 1),  # Already converted above
+                    'inpatient_usd': safe_float(normalized_data.get('inpatient_usd')),
+                    'total_usd': safe_float(normalized_data.get('total_usd')),
+                    'outpatient_coverage_percentage': safe_percentage(normalized_data.get('outpatient_coverage_percentage')),
+                    'outpatient_price_usd': safe_float(normalized_data.get('outpatient_price_usd'))
                 }
                 
-                # Create new tariff entry
-                tariff = models.Tariff(**tariff_data)
-                db.add(tariff)
-                records_created += 1
+                # Validate required fields after conversion
+                if tariff_data['policy_id'] is None:
+                    errors.append(f"Row {idx + 1}: policy_id is required and must be a valid integer")
+                    continue
+                if tariff_data['age_min'] is None:
+                    errors.append(f"Row {idx + 1}: age_min is required and must be a valid integer")
+                    continue
+                if tariff_data['age_max'] is None:
+                    errors.append(f"Row {idx + 1}: age_max is required and must be a valid integer")
+                    continue
+                if not tariff_data['class_type']:
+                    errors.append(f"Row {idx + 1}: class_type is required")
+                    continue
+                
+                # Check for duplicate tariff using in-memory lookup (much faster than DB query)
+                # A tariff is considered duplicate if it has the same:
+                # policy_id, age_min, age_max, class_type, family_min, family_max, and outpatient_coverage_percentage
+                duplicate_key = (
+                    tariff_data['policy_id'],
+                    tariff_data['age_min'],
+                    tariff_data['age_max'],
+                    tariff_data['class_type'],
+                    tariff_data['family_min'],
+                    tariff_data['family_max'],
+                    tariff_data['outpatient_coverage_percentage']
+                )
+                
+                existing_tariff = existing_tariffs_map.get(duplicate_key)
+                
+                if existing_tariff:
+                    # Update existing tariff with new values
+                    existing_tariff.family_type = tariff_data['family_type']
+                    existing_tariff.inpatient_usd = tariff_data['inpatient_usd']
+                    existing_tariff.total_usd = tariff_data['total_usd']
+                    existing_tariff.outpatient_coverage_percentage = tariff_data['outpatient_coverage_percentage']
+                    existing_tariff.outpatient_price_usd = tariff_data['outpatient_price_usd']
+                    records_updated += 1
+                else:
+                    # Create new tariff entry
+                    tariff = models.Tariff(**tariff_data)
+                    db.add(tariff)
+                    records_created += 1
+                    # Add to map so we don't create duplicates within the same upload
+                    existing_tariffs_map[duplicate_key] = tariff
+                
+                # Commit in batches to improve performance
+                # Commit every BATCH_SIZE records (created + updated combined)
+                total_processed = records_created + records_updated
+                if total_processed > 0 and total_processed % BATCH_SIZE == 0:
+                    try:
+                        db.commit()
+                        print(f"Committed batch: {total_processed} records processed so far")
+                    except Exception as commit_error:
+                        db.rollback()
+                        errors.append(f"Row {idx + 1}: Failed to commit batch: {str(commit_error)}")
+                        raise  # Re-raise to stop processing
                 
             except Exception as e:
-                errors.append(f"Row {idx + 1}: {str(e)}")
+                import traceback
+                error_detail = str(e)
+                # Include more context for debugging
+                if hasattr(e, '__class__'):
+                    error_detail = f"{e.__class__.__name__}: {error_detail}"
+                errors.append(f"Row {idx + 1}: {error_detail}")
+                # Log full traceback for debugging (but don't send to user)
+                print(f"Error processing row {idx + 1}:")
+                print(traceback.format_exc())
         
-        db.commit()
+        # Final commit for any remaining records
+        try:
+            db.commit()
+        except Exception as commit_error:
+            db.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to commit remaining records: {str(commit_error)}"
+            )
+        
+        # Group errors by type for better reporting
+        error_summary = {}
+        for error in errors:
+            # Extract error type (everything before the colon in the message)
+            if ': ' in error:
+                error_type = error.split(': ', 1)[1]
+                error_summary[error_type] = error_summary.get(error_type, 0) + 1
+            else:
+                error_summary[error] = error_summary.get(error, 0) + 1
+        
+        # Limit errors returned to first 100 to avoid huge responses
+        # But include a summary of all error types
+        limited_errors = errors[:100]
+        if len(errors) > 100:
+            limited_errors.append(f"... and {len(errors) - 100} more errors (see summary below)")
+        
+        # Add error summary to the response message
+        summary_lines = []
+        if error_summary:
+            summary_lines.append("Error Summary:")
+            for error_type, count in sorted(error_summary.items(), key=lambda x: x[1], reverse=True)[:10]:
+                summary_lines.append(f"  - {error_type}: {count} occurrences")
+        
+        message = "Upload completed"
+        if summary_lines:
+            message += "\n\n" + "\n".join(summary_lines)
         
         return schemas.UploadResponse(
-            message="Upload completed",
+            message=message,
             records_processed=records_processed,
             records_created=records_created,
-            records_updated=0,
-            errors=errors
+            records_updated=records_updated,
+            errors=limited_errors
         )
         
     except Exception as e:
@@ -1192,22 +1369,26 @@ def upload_criteria(
     db: Session = Depends(get_db),
     admin_user: models.User = Depends(get_current_admin)
 ):
-    """Upload plan criteria from JSON file (nested structure requires JSON)"""
+    """Upload plan criteria from JSON or Excel file"""
     errors = []
     records_processed = 0
     records_created = 0
     records_updated = 0
     
     try:
-        # Only JSON files supported for criteria due to nested structure
         file_extension = file.filename.split('.')[-1].lower()
-        if file_extension != 'json':
+        
+        if file_extension == 'json':
+            data_list = utils.parse_json_file(file)
+        elif file_extension in ['xlsx', 'xls']:
+            # Parse Excel file and convert to nested structure
+            flat_data_list = utils.parse_excel_file(file)
+            data_list = utils.parse_criteria_excel_to_json(flat_data_list)
+        else:
             raise HTTPException(
                 status_code=400,
-                detail="Only JSON files are supported for criteria uploads due to nested structure."
+                detail="Only JSON and Excel (.xlsx) files are supported for criteria uploads."
             )
-        
-        data_list = utils.parse_json_file(file)
         
         # Process each record
         for idx, data in enumerate(data_list):
@@ -1221,12 +1402,17 @@ def upload_criteria(
                     errors.append(f"Row {idx + 1}: Missing required field: criteria_data")
                     continue
                 
+                if 'outpatient_criteria_data' not in data:
+                    errors.append(f"Row {idx + 1}: Missing required field: outpatient_criteria_data")
+                    continue
+                
                 policy_id = int(data['policy_id'])
                 criteria_data = data['criteria_data']
+                outpatient_criteria_data = data['outpatient_criteria_data']
                 
                 # Validate policy exists
-                policy = db.query(models.InsurancePolicy).filter(
-                    models.InsurancePolicy.policy_id == policy_id
+                policy = db.query(models.InsurancePlan).filter(
+                    models.InsurancePlan.policy_id == policy_id
                 ).first()
                 if not policy:
                     errors.append(f"Row {idx + 1}: Policy with ID {policy_id} not found")
@@ -1234,6 +1420,12 @@ def upload_criteria(
                 
                 # Validate criteria_data structure
                 is_valid, error_msg = utils.validate_criteria_data(criteria_data)
+                if not is_valid:
+                    errors.append(f"Row {idx + 1}: {error_msg}")
+                    continue
+                
+                # Validate outpatient_criteria_data structure
+                is_valid, error_msg = utils.validate_outpatient_criteria_data(outpatient_criteria_data)
                 if not is_valid:
                     errors.append(f"Row {idx + 1}: {error_msg}")
                     continue
@@ -1246,12 +1438,14 @@ def upload_criteria(
                 if existing:
                     # Update existing criteria
                     existing.criteria_data = criteria_data
+                    existing.outpatient_criteria_data = outpatient_criteria_data
                     records_updated += 1
                 else:
                     # Create new criteria
                     plan_criteria = models.PlanCriteria(
                         policy_id=policy_id,
-                        criteria_data=criteria_data
+                        criteria_data=criteria_data,
+                        outpatient_criteria_data=outpatient_criteria_data
                     )
                     db.add(plan_criteria)
                     records_created += 1
@@ -1284,8 +1478,8 @@ def create_or_update_criteria(
 ):
     """Create or update criteria for a policy"""
     # Verify policy exists
-    policy = db.query(models.InsurancePolicy).filter(
-        models.InsurancePolicy.policy_id == policy_id
+    policy = db.query(models.InsurancePlan).filter(
+        models.InsurancePlan.policy_id == policy_id
     ).first()
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
@@ -1298,6 +1492,7 @@ def create_or_update_criteria(
     if existing:
         # Update existing
         existing.criteria_data = criteria_data.criteria_data.dict()
+        existing.outpatient_criteria_data = criteria_data.outpatient_criteria_data.dict()
         db.commit()
         db.refresh(existing)
         return schemas.PlanCriteriaOut.from_orm(existing)
@@ -1305,7 +1500,8 @@ def create_or_update_criteria(
         # Create new
         plan_criteria = models.PlanCriteria(
             policy_id=policy_id,
-            criteria_data=criteria_data.criteria_data.dict()
+            criteria_data=criteria_data.criteria_data.dict(),
+            outpatient_criteria_data=criteria_data.outpatient_criteria_data.dict()
         )
         db.add(plan_criteria)
         db.commit()
@@ -1359,8 +1555,8 @@ def create_tariffs(
 ):
     """Create tariff entries for a policy (bulk)"""
     # Verify policy exists
-    policy = db.query(models.InsurancePolicy).filter(
-        models.InsurancePolicy.policy_id == policy_id
+    policy = db.query(models.InsurancePlan).filter(
+        models.InsurancePlan.policy_id == policy_id
     ).first()
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
@@ -1416,6 +1612,31 @@ def delete_tariff(
     db.delete(tariff)
     db.commit()
     return {"message": "Tariff deleted successfully"}
+
+
+@router.delete("/policies/{policy_id}/tariffs")
+def delete_all_policy_tariffs(
+    policy_id: int,
+    db: Session = Depends(get_db),
+    admin_user: models.User = Depends(get_current_admin)
+):
+    """Delete all tariffs for a specific policy"""
+    # Verify policy exists
+    policy = db.query(models.InsurancePlan).filter(
+        models.InsurancePlan.policy_id == policy_id
+    ).first()
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+    
+    count = db.query(models.Tariff).filter(
+        models.Tariff.policy_id == policy_id
+    ).count()
+    
+    db.query(models.Tariff).filter(
+        models.Tariff.policy_id == policy_id
+    ).delete()
+    db.commit()
+    return {"message": f"Successfully deleted {count} tariff(s) for policy {policy_id}"}
 
 
 # ==================== Admin Logs (Placeholder) ====================

@@ -62,7 +62,7 @@ class Provider(Base):
     logo_url = Column(String(255), nullable=True)
 
     # Relationships
-    policies = relationship("InsurancePolicy", back_populates="provider")
+    plans = relationship("InsurancePlan", back_populates="provider")
 
 
 class InsuranceType(Base):
@@ -77,11 +77,11 @@ class InsuranceType(Base):
     parent_type = relationship("InsuranceType", remote_side=[type_id], backref="sub_types")
     
     # Relationships
-    policies = relationship("InsurancePolicy", back_populates="insurance_type")
+    plans = relationship("InsurancePlan", back_populates="insurance_type")
 
 
-class InsurancePolicy(Base):
-    __tablename__ = "insurance_policies"
+class InsurancePlan(Base):
+    __tablename__ = "insurance_plans"
 
     policy_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     type_id = Column(Integer, ForeignKey("insurance_types.type_id"), nullable=False)
@@ -93,11 +93,11 @@ class InsurancePolicy(Base):
     contract_pdf_url = Column(String(255), nullable=True)
 
     # Relationships
-    insurance_type = relationship("InsuranceType", back_populates="policies")
-    provider = relationship("Provider", back_populates="policies")
-    document_requirements = relationship("PolicyDocumentRequirement", back_populates="policy")
-    versions = relationship("PolicyDocumentVersion", back_populates="policy")
-    user_policies = relationship("UserPolicy", back_populates="policy")
+    insurance_type = relationship("InsuranceType", back_populates="plans")
+    provider = relationship("Provider", back_populates="plans")
+    document_requirements = relationship("PolicyDocumentRequirement", back_populates="plan")
+    versions = relationship("PolicyDocumentVersion", back_populates="plan")
+    user_policies = relationship("UserPolicy", back_populates="plan")
 
 
 class RequiredDocument(Base):
@@ -118,13 +118,13 @@ class PolicyDocumentRequirement(Base):
     __tablename__ = "policy_document_requirements"
 
     policy_doc_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    policy_id = Column(Integer, ForeignKey("insurance_policies.policy_id"), nullable=False)
+    policy_id = Column(Integer, ForeignKey("insurance_plans.policy_id"), nullable=False)
     doc_id = Column(Integer, ForeignKey("required_documents.doc_id"), nullable=False)
     requirement_level = Column(SQLEnum(RequirementLevel), nullable=False)
     notes = Column(Text, nullable=True)
 
     # Relationships
-    policy = relationship("InsurancePolicy", back_populates="document_requirements")
+    plan = relationship("InsurancePlan", back_populates="document_requirements")
     document = relationship("RequiredDocument", back_populates="policy_requirements")
 
 
@@ -147,7 +147,7 @@ class PolicyDocumentVersion(Base):
     __tablename__ = "policy_document_versions"
 
     version_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    policy_id = Column(Integer, ForeignKey("insurance_policies.policy_id"), nullable=False)
+    policy_id = Column(Integer, ForeignKey("insurance_plans.policy_id"), nullable=False)
     version_number = Column(String(50), nullable=True)
     pdf_url = Column(String(255), nullable=True)
     effective_date = Column(Date, nullable=True)
@@ -155,7 +155,7 @@ class PolicyDocumentVersion(Base):
     notes = Column(Text, nullable=True)
 
     # Relationships
-    policy = relationship("InsurancePolicy", back_populates="versions")
+    plan = relationship("InsurancePlan", back_populates="versions")
     user_policies = relationship("UserPolicy", back_populates="version")
 
 
@@ -164,7 +164,7 @@ class UserPolicy(Base):
 
     user_policy_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    policy_id = Column(Integer, ForeignKey("insurance_policies.policy_id"), nullable=False)
+    policy_id = Column(Integer, ForeignKey("insurance_plans.policy_id"), nullable=False)
     version_id = Column(Integer, ForeignKey("policy_document_versions.version_id"), nullable=True)
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
@@ -176,7 +176,7 @@ class UserPolicy(Base):
 
     # Relationships
     user = relationship("User", back_populates="user_policies")
-    policy = relationship("InsurancePolicy", back_populates="user_policies")
+    plan = relationship("InsurancePlan", back_populates="user_policies")
     version = relationship("PolicyDocumentVersion", back_populates="user_policies")
     claims = relationship("Claim", back_populates="user_policy")
 
@@ -198,7 +198,7 @@ class Tariff(Base):
     __tablename__ = "tariffs"
 
     tariff_id = Column(Integer, primary_key=True, autoincrement=True)
-    policy_id = Column(Integer, ForeignKey("insurance_policies.policy_id"), nullable=False)
+    policy_id = Column(Integer, ForeignKey("insurance_plans.policy_id"), nullable=False)
 
     age_min = Column(Integer, nullable=False)
     age_max = Column(Integer, nullable=False)
@@ -217,15 +217,16 @@ class Tariff(Base):
     outpatient_coverage_percentage = Column(Float, nullable=True)  # e.g. 0.0, 0.85, 1.0 for 0%, 85%, 100%
     outpatient_price_usd = Column(Numeric(10, 2), nullable=True)  # Additional price for this outpatient option
 
-    policy = relationship("InsurancePolicy", backref="tariffs")
+    plan = relationship("InsurancePlan", backref="tariffs")
 
 
 class PlanCriteria(Base):
     __tablename__ = "plan_criteria"
 
     criteria_id = Column(Integer, primary_key=True, autoincrement=True)
-    policy_id = Column(Integer, ForeignKey("insurance_policies.policy_id"), nullable=False)
-    criteria_data = Column(JSONB, nullable=False, default={})
+    policy_id = Column(Integer, ForeignKey("insurance_plans.policy_id"), nullable=False)
+    criteria_data = Column(JSONB, nullable=False, default={})  # In-patient criteria only
+    outpatient_criteria_data = Column(JSONB, nullable=False, default={})  # Out-patient criteria
 
     # Relationship
-    policy = relationship("InsurancePolicy", backref="criteria")
+    plan = relationship("InsurancePlan", backref="criteria")

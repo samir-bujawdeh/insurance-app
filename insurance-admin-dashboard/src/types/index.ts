@@ -16,8 +16,8 @@ export interface AdminUser {
   is_admin: boolean;
 }
 
-// Policy Types
-export interface InsurancePolicy {
+// Plan Types
+export interface InsurancePlan {
   policy_id: number;
   type_id: number;
   provider_id: number;
@@ -70,7 +70,7 @@ export interface UserPolicy {
   status: "active" | "expired" | "pending_payment";
   signed_contract_url?: string;
   issued_at: string;
-  policy?: InsurancePolicy;
+  plan?: InsurancePlan;
   user?: User;
 }
 

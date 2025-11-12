@@ -251,30 +251,6 @@ export function UsersPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["users", filters],
     queryFn: () => getUsers(filters),
-    placeholderData: {
-      items: [
-        {
-          user_id: 1,
-          name: "John Doe",
-          email: "john@example.com",
-          phone: "+1-555-0123",
-          created_at: "2024-01-15T10:00:00Z",
-          is_active: true,
-        },
-        {
-          user_id: 2,
-          name: "Jane Smith",
-          email: "jane@example.com",
-          phone: "+1-555-0124",
-          created_at: "2024-01-20T10:00:00Z",
-          is_active: true,
-        },
-      ],
-      total: 2,
-      page: 1,
-      page_size: 10,
-      total_pages: 1,
-    },
   });
 
 
@@ -460,7 +436,7 @@ function UserRowWithDetails({ user }: { user: User }) {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{userPolicy.policy?.name || "Unknown Policy"}</span>
+                          <span className="font-medium">{userPolicy.plan?.name || "Unknown Policy"}</span>
                           <Badge variant={
                             userPolicy.status === "active" ? "default" :
                             userPolicy.status === "pending_payment" ? "secondary" :
@@ -578,7 +554,7 @@ function UserRowWithDetails({ user }: { user: User }) {
           <DialogHeader>
             <DialogTitle>Remove Policy</DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove "{selectedUserPolicy?.policy?.name}" from {user.name}? This action cannot be undone.
+              Are you sure you want to remove "{selectedUserPolicy?.plan?.name}" from {user.name}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

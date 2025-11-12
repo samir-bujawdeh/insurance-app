@@ -50,3 +50,8 @@ export async function deleteTariff(tariffId: number): Promise<void> {
   await api.delete(`/admin/tariffs/${tariffId}`);
 }
 
+export async function deleteAllTariffsForPolicy(policyId: number): Promise<{ message: string }> {
+  const response = await api.delete<{ message: string }>(`/admin/policies/${policyId}/tariffs`);
+  return response.data;
+}
+

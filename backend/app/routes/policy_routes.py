@@ -30,8 +30,8 @@ def purchase_policy(
 ):
     """Purchase a policy (create user policy)"""
     # Verify policy exists
-    policy = db.query(models.InsurancePolicy).filter(
-        models.InsurancePolicy.policy_id == policy_id
+    policy = db.query(models.InsurancePlan).filter(
+        models.InsurancePlan.policy_id == policy_id
     ).first()
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")

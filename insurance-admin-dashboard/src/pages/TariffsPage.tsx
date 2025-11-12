@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getPolicies } from "@/api/policies";
-import { getTariffsByPolicy, createTariff, deleteTariff, Tariff } from "@/api/tariffs";
+import { getTariffsByPolicy, createTariff, deleteTariff, deleteAllTariffsForPolicy, Tariff } from "@/api/tariffs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Filter, X, AlertTriangle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export function TariffsPage() {
@@ -25,6 +25,11 @@ export function TariffsPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTariff, setSelectedTariff] = useState<Tariff | null>(null);
   const [search, setSearch] = useState("");
+  const [filterClassType, setFilterClassType] = useState<string>("");
+  const [filterFamilyType, setFilterFamilyType] = useState<string>("");
+  const [filterOutpatientCoverage, setFilterOutpatientCoverage] = useState<string>("");
+  const [filterAgeRange, setFilterAgeRange] = useState<string>("");
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -59,28 +64,126 @@ export function TariffsPage() {
     },
   });
 
+  const deleteAllMutation = useMutation({
+    mutationFn: deleteAllTariffsForPolicy,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["tariffs", selectedPolicyId] });
+      toast.success(data.message);
+      setDeleteAllDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Failed to delete all tariffs");
+    },
+  });
+
   const filteredPolicies = policies?.items.filter((policy) =>
     policy.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Extract unique values for filters
+  const uniqueClassTypes = tariffs
+    ? Array.from(new Set(tariffs.map((t) => t.class_type).filter(Boolean))).sort()
+    : [];
+  
+  const uniqueFamilyTypes = tariffs
+    ? Array.from(new Set(tariffs.map((t) => t.family_type).filter(Boolean))).sort()
+    : [];
+
+  // Extract unique outpatient coverage percentages (convert to percentage format for display)
+  const uniqueOutpatientCoverages = tariffs
+    ? Array.from(
+        new Set(
+          tariffs
+            .map((t) => t.outpatient_coverage_percentage)
+            .filter((val) => val !== undefined && val !== null)
+            .map((val) => (val * 100).toFixed(0) + "%")
+        )
+      ).sort((a, b) => {
+        // Sort numerically by percentage value
+        const numA = parseFloat(a);
+        const numB = parseFloat(b);
+        return numA - numB;
+      })
+    : [];
+
+  // Extract unique age ranges
+  const uniqueAgeRanges = tariffs
+    ? Array.from(
+        new Set(
+          tariffs.map((t) => `${t.age_min}-${t.age_max}`)
+        )
+      ).sort((a, b) => {
+        // Sort by minimum age
+        const minA = parseInt(a.split("-")[0]);
+        const minB = parseInt(b.split("-")[0]);
+        return minA - minB;
+      })
+    : [];
+
+  // Filter tariffs based on selected filters
+  const filteredTariffs = tariffs?.filter((tariff) => {
+    // Filter by class type
+    if (filterClassType && tariff.class_type !== filterClassType) {
+      return false;
+    }
+
+    // Filter by family type
+    if (filterFamilyType) {
+      if (!tariff.family_type || tariff.family_type !== filterFamilyType) {
+        return false;
+      }
+    }
+
+    // Filter by outpatient coverage
+    if (filterOutpatientCoverage) {
+      const coverage = tariff.outpatient_coverage_percentage;
+      if (coverage === undefined || coverage === null) {
+        return false;
+      }
+      const coveragePercent = (coverage * 100).toFixed(0) + "%";
+      if (coveragePercent !== filterOutpatientCoverage) {
+        return false;
+      }
+    }
+
+    // Filter by age range
+    if (filterAgeRange) {
+      const ageRange = `${tariff.age_min}-${tariff.age_max}`;
+      if (ageRange !== filterAgeRange) {
+        return false;
+      }
+    }
+
+    return true;
+  }) || [];
+
+  const hasActiveFilters = filterClassType || filterFamilyType || filterOutpatientCoverage || filterAgeRange;
+
+  const clearFilters = () => {
+    setFilterClassType("");
+    setFilterFamilyType("");
+    setFilterOutpatientCoverage("");
+    setFilterAgeRange("");
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Tariffs Management</h1>
         <p className="text-muted-foreground">
-          Manage pricing tariffs for insurance policies
+          Manage pricing tariffs for insurance plans
         </p>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Select Policy</CardTitle>
+            <CardTitle>Select Plan</CardTitle>
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search policies..."
+                  placeholder="Search plans..."
                   className="pl-8 w-64"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -114,17 +217,130 @@ export function TariffsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Tariffs</CardTitle>
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Tariff
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={() => setDeleteAllDialogOpen(true)}
+                  disabled={deleteAllMutation.isPending || !tariffs || tariffs.length === 0}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete All Tariffs for This Plan
+                </Button>
+                <Button onClick={() => setCreateDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Tariff
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div>Loading tariffs...</div>
             ) : tariffs && tariffs.length > 0 ? (
-              <Table>
+              <>
+                {/* Filters */}
+                <div className="mb-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Filters:</span>
+                    {hasActiveFilters && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="h-7 text-xs"
+                      >
+                        <X className="mr-1 h-3 w-3" />
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Age Range Filter */}
+                    <div>
+                      <Label htmlFor="filter-age-range" className="text-xs text-muted-foreground">
+                        Age Range
+                      </Label>
+                      <Select
+                        id="filter-age-range"
+                        value={filterAgeRange}
+                        onChange={(e) => setFilterAgeRange(e.target.value)}
+                      >
+                        <option value="">All Age Ranges</option>
+                        {uniqueAgeRanges.map((ageRange) => (
+                          <option key={ageRange} value={ageRange}>
+                            {ageRange}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+
+                    {/* Class Type Filter */}
+                    <div>
+                      <Label htmlFor="filter-class" className="text-xs text-muted-foreground">
+                        Class Type
+                      </Label>
+                      <Select
+                        id="filter-class"
+                        value={filterClassType}
+                        onChange={(e) => setFilterClassType(e.target.value)}
+                      >
+                        <option value="">All Classes</option>
+                        {uniqueClassTypes.map((classType) => (
+                          <option key={classType} value={classType}>
+                            {classType}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+
+                    {/* Family Type Filter */}
+                    <div>
+                      <Label htmlFor="filter-family" className="text-xs text-muted-foreground">
+                        Family Type
+                      </Label>
+                      <Select
+                        id="filter-family"
+                        value={filterFamilyType}
+                        onChange={(e) => setFilterFamilyType(e.target.value)}
+                      >
+                        <option value="">All Family Types</option>
+                        {uniqueFamilyTypes.map((familyType) => (
+                          <option key={familyType} value={familyType}>
+                            {familyType}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+
+                    {/* Outpatient Coverage Filter */}
+                    <div>
+                      <Label htmlFor="filter-outpatient" className="text-xs text-muted-foreground">
+                        Outpatient Coverage
+                      </Label>
+                      <Select
+                        id="filter-outpatient"
+                        value={filterOutpatientCoverage}
+                        onChange={(e) => setFilterOutpatientCoverage(e.target.value)}
+                      >
+                        <option value="">All Coverage Levels</option>
+                        {uniqueOutpatientCoverages.map((coverage) => (
+                          <option key={coverage} value={coverage}>
+                            {coverage}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  </div>
+                  {hasActiveFilters && (
+                    <div className="text-sm text-muted-foreground">
+                      Showing {filteredTariffs.length} of {tariffs.length} tariffs
+                    </div>
+                  )}
+                </div>
+
+                {/* Table */}
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Age Range</TableHead>
@@ -139,7 +355,8 @@ export function TariffsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tariffs.map((tariff) => (
+                  {filteredTariffs.length > 0 ? (
+                    filteredTariffs.map((tariff) => (
                     <TableRow key={tariff.tariff_id}>
                       <TableCell>{tariff.age_min}-{tariff.age_max}</TableCell>
                       <TableCell>{tariff.class_type}</TableCell>
@@ -159,9 +376,17 @@ export function TariffsPage() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        No tariffs match the selected filters.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
+              </>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 No tariffs found for this policy. Click "Add Tariff" to create one.
@@ -180,6 +405,42 @@ export function TariffsPage() {
           onSubmit={(data) => createMutation.mutate(data)}
         />
       )}
+
+      {/* Delete All Confirmation Dialog */}
+      <Dialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete All Tariffs
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete ALL tariffs for this plan? This action cannot be undone.
+              <br />
+              <br />
+              <strong className="text-destructive">
+                This will permanently delete all {tariffs?.length || 0} tariff record(s) for the selected plan.
+              </strong>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteAllDialogOpen(false)}
+              disabled={deleteAllMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => selectedPolicyId && deleteAllMutation.mutate(selectedPolicyId)}
+              disabled={deleteAllMutation.isPending || !selectedPolicyId}
+            >
+              {deleteAllMutation.isPending ? "Deleting..." : "Delete All"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

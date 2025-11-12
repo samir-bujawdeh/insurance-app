@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { InsurancePolicy } from "@/types";
+import { InsurancePlan } from "@/types";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -26,37 +26,20 @@ export function PoliciesPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedPolicy, setSelectedPolicy] = useState<InsurancePolicy | null>(null);
+  const [selectedPolicy, setSelectedPolicy] = useState<InsurancePlan | null>(null);
 
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["policies", { search }],
     queryFn: () => getPolicies({ search, page: 1, page_size: 50 }),
-    placeholderData: {
-      items: [
-        {
-          policy_id: 1,
-          type_id: 1,
-          provider_id: 1,
-          name: "Basic Auto Insurance",
-          description: "Comprehensive auto coverage",
-          duration: "12 months",
-          status: "active" as const,
-        },
-      ],
-      total: 1,
-      page: 1,
-      page_size: 50,
-      total_pages: 1,
-    },
   });
 
   const createMutation = useMutation({
     mutationFn: createPolicy,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
-      toast.success("Policy created successfully");
+      toast.success("Plan created successfully");
       setCreateDialogOpen(false);
     },
   });
@@ -65,7 +48,7 @@ export function PoliciesPage() {
     mutationFn: ({ id, data }: { id: number; data: any }) => updatePolicy(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
-      toast.success("Policy updated successfully");
+      toast.success("Plan updated successfully");
       setEditDialogOpen(false);
       setSelectedPolicy(null);
     },
@@ -75,12 +58,12 @@ export function PoliciesPage() {
     mutationFn: deletePolicy,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
-      toast.success("Policy deleted successfully");
+      toast.success("Plan deleted successfully");
       setDeleteDialogOpen(false);
       setSelectedPolicy(null);
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.detail || "Failed to delete policy");
+      toast.error(error?.response?.data?.detail || "Failed to delete plan");
     },
   });
 
@@ -88,26 +71,26 @@ export function PoliciesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Policies Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Plans Management</h1>
           <p className="text-muted-foreground">
-            Manage insurance policies and rates
+            Manage insurance plans and rates
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Create Policy
+          Create Plan
         </Button>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Policies</CardTitle>
+            <CardTitle>Plans</CardTitle>
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search policies..."
+                  placeholder="Search plans..."
                   className="pl-8 w-64"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -118,7 +101,7 @@ export function PoliciesPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div>Loading policies...</div>
+            <div>Loading plans...</div>
           ) : (
             <div className="space-y-4">
               {data?.items.map((policy) => (
@@ -180,7 +163,7 @@ export function PoliciesPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Policy</DialogTitle>
+            <DialogTitle>Delete Plan</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete "{selectedPolicy?.name}"? This action cannot be undone.
             </DialogDescription>
@@ -223,7 +206,7 @@ function PolicyDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  policy?: InsurancePolicy;
+  policy?: InsurancePlan;
   onSubmit: (data: any) => void;
 }) {
   const [formData, setFormData] = useState({
@@ -250,9 +233,9 @@ function PolicyDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{policy ? "Edit Policy" : "Create Policy"}</DialogTitle>
+          <DialogTitle>{policy ? "Edit Plan" : "Create Plan"}</DialogTitle>
           <DialogDescription>
-            {policy ? "Update policy details" : "Add a new insurance policy"}
+            {policy ? "Update plan details" : "Add a new insurance plan"}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">

@@ -6,10 +6,6 @@ import api from "./axios";
  */
 
 export interface CoverageItem {
-  coverage_type: "limited" | "covered" | "conditional";
-  coverage_amount?: number;
-  currency?: string;
-  waiting_period_days?: number;
   notes?: string;
 }
 
@@ -87,19 +83,24 @@ export interface OutPatientCoverage {
   prescribed_medicines_drugs: CoverageItem;
 }
 
-export interface PlanCriteriaData {
+export interface InPatientCriteriaData {
   in_patient: InPatientCoverage;
+}
+
+export interface OutPatientCriteriaData {
   out_patient: OutPatientCoverage;
 }
 
 export interface PlanCriteria {
   criteria_id: number;
   policy_id: number;
-  criteria_data: PlanCriteriaData;
+  criteria_data: InPatientCriteriaData;
+  outpatient_criteria_data: OutPatientCriteriaData;
 }
 
 export interface PlanCriteriaUpdate {
-  criteria_data: PlanCriteriaData;
+  criteria_data: InPatientCriteriaData;
+  outpatient_criteria_data: OutPatientCriteriaData;
 }
 
 export async function getCriteriaByPolicy(policyId: number): Promise<PlanCriteria> {

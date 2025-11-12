@@ -24,33 +24,33 @@ def list_insurance_types(db: Session = Depends(get_db)):
 def test_policies(db: Session = Depends(get_db)):
     """Test endpoint to debug policies issue"""
     try:
-        count = db.query(models.InsurancePolicy).count()
+        count = db.query(models.InsurancePlan).count()
         return {"count": count, "message": "Policies query successful"}
     except Exception as e:
         return {"error": str(e), "message": "Policies query failed"}
 
 
-@router.get("/policies", response_model=List[schemas.InsurancePolicyOut])
+@router.get("/policies", response_model=List[schemas.InsurancePlanOut])
 def list_policies(
     type_id: Optional[int] = None,
     provider_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
     """Get all insurance policies with optional filtering"""
-    query = db.query(models.InsurancePolicy)
+    query = db.query(models.InsurancePlan)
     
     if type_id:
-        query = query.filter(models.InsurancePolicy.type_id == type_id)
+        query = query.filter(models.InsurancePlan.type_id == type_id)
     if provider_id:
-        query = query.filter(models.InsurancePolicy.provider_id == provider_id)
+        query = query.filter(models.InsurancePlan.provider_id == provider_id)
     
     return query.all()
 
 
-@router.get("/policies/{policy_id}", response_model=schemas.InsurancePolicyDetailOut)
+@router.get("/policies/{policy_id}", response_model=schemas.InsurancePlanDetailOut)
 def get_policy(policy_id: int, db: Session = Depends(get_db)):
     """Get a specific insurance policy with details"""
-    policy = db.query(models.InsurancePolicy).filter(models.InsurancePolicy.policy_id == policy_id).first()
+    policy = db.query(models.InsurancePlan).filter(models.InsurancePlan.policy_id == policy_id).first()
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
     return policy
@@ -74,10 +74,10 @@ def get_policy_versions(policy_id: int, db: Session = Depends(get_db)):
     return versions
 
 
-@router.post("/policies", response_model=schemas.InsurancePolicyOut)
-def create_policy(policy: schemas.InsurancePolicyCreate, db: Session = Depends(get_db)):
+@router.post("/policies", response_model=schemas.InsurancePlanOut)
+def create_policy(policy: schemas.InsurancePlanCreate, db: Session = Depends(get_db)):
     """Create a new insurance policy"""
-    db_policy = models.InsurancePolicy(**policy.dict())
+    db_policy = models.InsurancePlan(**policy.dict())
     db.add(db_policy)
     db.commit()
     db.refresh(db_policy)

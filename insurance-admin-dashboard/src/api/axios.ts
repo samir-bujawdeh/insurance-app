@@ -45,3 +45,8 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// Get the API base URL for constructing full URLs (e.g., for static assets)
+export const getApiBaseUrl = () => {
+  return import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+};

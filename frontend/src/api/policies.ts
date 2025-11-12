@@ -15,7 +15,7 @@ export interface UserPolicy {
 }
 
 export interface UserPolicyDetail extends UserPolicy {
-  policy: {
+  plan: {
     policy_id: number;
     type_id: number;
     provider_id: number;

@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.routes import auth_routes
 from app.routes import marketplace_routes, policy_routes, claims_routes, notifications_routes, document_routes, admin_routes
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, Base, engine, DB_URL_EFFECTIVE, DB_DIALECT
 from sqlalchemy import text
+import os
 
 
 
@@ -27,6 +29,11 @@ app.include_router(claims_routes.router)
 app.include_router(notifications_routes.router)
 app.include_router(document_routes.router)
 app.include_router(admin_routes.router)
+
+# Mount static files directory for logos and other static assets
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
 def root():
@@ -115,27 +122,27 @@ def init_database():
                             END IF;
                         END$$;
                     """))
-                    # Drop redundant columns from insurance_policies table if they exist
+                    # Drop redundant columns from insurance_plans table if they exist
                     conn.execute(text("""
                         DO $$
                         BEGIN
                             IF EXISTS (
                                 SELECT 1 FROM information_schema.columns 
-                                WHERE table_name='insurance_policies' AND column_name='premium'
+                                WHERE table_name='insurance_plans' AND column_name='premium'
                             ) THEN
-                                ALTER TABLE insurance_policies DROP COLUMN premium;
+                                ALTER TABLE insurance_plans DROP COLUMN premium;
                             END IF;
                             IF EXISTS (
                                 SELECT 1 FROM information_schema.columns 
-                                WHERE table_name='insurance_policies' AND column_name='coverage_summary'
+                                WHERE table_name='insurance_plans' AND column_name='coverage_summary'
                             ) THEN
-                                ALTER TABLE insurance_policies DROP COLUMN coverage_summary;
+                                ALTER TABLE insurance_plans DROP COLUMN coverage_summary;
                             END IF;
                             IF EXISTS (
                                 SELECT 1 FROM information_schema.columns 
-                                WHERE table_name='insurance_policies' AND column_name='exclusions_summary'
+                                WHERE table_name='insurance_plans' AND column_name='exclusions_summary'
                             ) THEN
-                                ALTER TABLE insurance_policies DROP COLUMN exclusions_summary;
+                                ALTER TABLE insurance_plans DROP COLUMN exclusions_summary;
                             END IF;
                         END$$;
                     """))
@@ -166,15 +173,15 @@ def init_database():
                     if 'outpatient_price_usd' not in tariff_columns:
                         conn.execute(text("ALTER TABLE tariffs ADD COLUMN outpatient_price_usd NUMERIC(10, 2)"))
                     
-                    # Drop redundant columns from insurance_policies table if they exist
-                    result = conn.execute(text("PRAGMA table_info(insurance_policies)"))
+                    # Drop redundant columns from insurance_plans table if they exist
+                    result = conn.execute(text("PRAGMA table_info(insurance_plans)"))
                     policy_columns = [row[1] for row in result.fetchall()] if result else []
                     if 'premium' in policy_columns:
-                        conn.execute(text("ALTER TABLE insurance_policies DROP COLUMN premium"))
+                        conn.execute(text("ALTER TABLE insurance_plans DROP COLUMN premium"))
                     if 'coverage_summary' in policy_columns:
-                        conn.execute(text("ALTER TABLE insurance_policies DROP COLUMN coverage_summary"))
+                        conn.execute(text("ALTER TABLE insurance_plans DROP COLUMN coverage_summary"))
                     if 'exclusions_summary' in policy_columns:
-                        conn.execute(text("ALTER TABLE insurance_policies DROP COLUMN exclusions_summary"))
+                        conn.execute(text("ALTER TABLE insurance_plans DROP COLUMN exclusions_summary"))
             except Exception as _e:
                 # Table might not exist yet, will be created by Base.metadata.create_all
                 print(f"Note: Columns will be added when table is created: {_e}")

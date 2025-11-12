@@ -91,8 +91,8 @@ class InsuranceTypeOut(BaseModel):
         orm_mode = True
 
 
-# Insurance Policy Schemas
-class InsurancePolicyCreate(BaseModel):
+# Insurance Plan Schemas
+class InsurancePlanCreate(BaseModel):
     type_id: int
     provider_id: int
     name: str
@@ -102,7 +102,7 @@ class InsurancePolicyCreate(BaseModel):
     contract_pdf_url: Optional[str] = None
 
 
-class InsurancePolicyOut(BaseModel):
+class InsurancePlanOut(BaseModel):
     policy_id: int
     type_id: int
     provider_id: int
@@ -120,7 +120,7 @@ class InsurancePolicyOut(BaseModel):
         orm_mode = True
 
 
-class InsurancePolicyDetailOut(InsurancePolicyOut):
+class InsurancePlanDetailOut(InsurancePlanOut):
     insurance_type: InsuranceTypeOut
     provider: ProviderOut
 
@@ -243,7 +243,7 @@ class UserPolicyOut(BaseModel):
 
 
 class UserPolicyDetailOut(UserPolicyOut):
-    policy: InsurancePolicyDetailOut
+    plan: InsurancePlanDetailOut
     version: Optional[PolicyDocumentVersionOut] = None
 
     class Config:
@@ -310,10 +310,6 @@ class PaginatedResponse(BaseModel):
 
 # Plan Criteria Schemas
 class CoverageItemBase(BaseModel):
-    coverage_type: str  # "limited" | "covered" | "conditional"
-    coverage_amount: Optional[float] = None
-    currency: Optional[str] = "USD"
-    waiting_period_days: Optional[int] = None
     notes: Optional[str] = ""
 
 
@@ -391,24 +387,30 @@ class OutPatientCoverage(BaseModel):
     prescribed_medicines_drugs: CoverageItemBase
 
 
-class PlanCriteriaData(BaseModel):
+class InPatientCriteriaData(BaseModel):
     in_patient: InPatientCoverage
+
+
+class OutPatientCriteriaData(BaseModel):
     out_patient: OutPatientCoverage
 
 
 class PlanCriteriaCreate(BaseModel):
     policy_id: int
-    criteria_data: PlanCriteriaData
+    criteria_data: InPatientCriteriaData
+    outpatient_criteria_data: OutPatientCriteriaData
 
 
 class PlanCriteriaUpdate(BaseModel):
-    criteria_data: PlanCriteriaData
+    criteria_data: InPatientCriteriaData
+    outpatient_criteria_data: OutPatientCriteriaData
 
 
 class PlanCriteriaOut(BaseModel):
     criteria_id: int
     policy_id: int
     criteria_data: dict
+    outpatient_criteria_data: dict
 
     class Config:
         orm_mode = True

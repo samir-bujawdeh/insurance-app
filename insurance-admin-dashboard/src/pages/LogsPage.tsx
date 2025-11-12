@@ -6,23 +6,6 @@ export function LogsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-logs"],
     queryFn: () => getAdminLogs({ page: 1, page_size: 50 }),
-    placeholderData: {
-      items: [
-        {
-          log_id: 1,
-          admin_user_id: 1,
-          action: "UPDATE",
-          resource_type: "user",
-          resource_id: 123,
-          details: "Updated user profile",
-          created_at: "2024-01-15T10:00:00Z",
-        },
-      ],
-      total: 1,
-      page: 1,
-      page_size: 50,
-      total_pages: 1,
-    },
   });
 
   return (

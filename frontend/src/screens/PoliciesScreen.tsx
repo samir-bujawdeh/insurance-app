@@ -102,77 +102,83 @@ const PoliciesScreen = () => {
   };
 
 
-  const renderPolicyItem = ({ item }: { item: UserPolicyDetail }) => (
-    <TouchableOpacity style={styles.policyCard} activeOpacity={0.7}>
-      <View style={styles.policyCardContent}>
-        <View style={styles.policyHeader}>
-          <View style={styles.policyTitleContainer}>
-            <Text style={styles.policyName}>{item.policy.name}</Text>
-            <View style={styles.policyTypeBadge}>
-              <Text style={styles.policyTypeText}>{item.policy.insurance_type.name}</Text>
+  const renderPolicyItem = ({ item }: { item: UserPolicyDetail }) => {
+    if (!item.plan) {
+      return null;
+    }
+    
+    return (
+      <TouchableOpacity style={styles.policyCard} activeOpacity={0.7}>
+        <View style={styles.policyCardContent}>
+          <View style={styles.policyHeader}>
+            <View style={styles.policyTitleContainer}>
+              <Text style={styles.policyName}>{item.plan?.name || "Unknown Plan"}</Text>
+              <View style={styles.policyTypeBadge}>
+                <Text style={styles.policyTypeText}>{item.plan?.insurance_type?.name || "Unknown Type"}</Text>
+              </View>
             </View>
-          </View>
-          <View style={[styles.statusContainer, { backgroundColor: getStatusColor(item.status) + "15" }]}>
-            <Ionicons 
-              name={getStatusIcon(item.status) as any} 
-              size={16} 
-              color={getStatusColor(item.status)} 
-            />
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-              {item.status.replace("_", " ").toUpperCase()}
-            </Text>
-          </View>
-        </View>
-        
-        <View style={styles.policyDetails}>
-          <View style={styles.providerRow}>
-            <Ionicons name="business" size={16} color={theme.accent} />
-            <Text style={styles.providerName}>{item.policy.provider.name}</Text>
-          </View>
-          
-          {item.policy_number && (
-            <View style={styles.policyNumberRow}>
-              <Ionicons name="document-text" size={16} color="#666" />
-              <Text style={styles.policyNumber}>#{item.policy_number}</Text>
-            </View>
-          )}
-          
-          {item.premium_paid && (
-            <View style={styles.premiumRow}>
-              <Ionicons name="card" size={16} color="#4CAF50" />
-              <Text style={styles.premiumPaid}>${item.premium_paid.toFixed(2)} paid</Text>
-            </View>
-          )}
-          
-          {item.start_date && item.end_date && (
-            <View style={styles.coverageRow}>
-              <Ionicons name="calendar" size={16} color="#666" />
-              <Text style={styles.coveragePeriod}>
-                {new Date(item.start_date).toLocaleDateString()} - {new Date(item.end_date).toLocaleDateString()}
+            <View style={[styles.statusContainer, { backgroundColor: getStatusColor(item.status) + "15" }]}>
+              <Ionicons 
+                name={getStatusIcon(item.status) as any} 
+                size={16} 
+                color={getStatusColor(item.status)} 
+              />
+              <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                {item.status.replace("_", " ").toUpperCase()}
               </Text>
             </View>
-          )}
-        </View>
-        
-        {item.policy.coverage_summary && (
-          <View style={styles.coverageSummaryContainer}>
-            <Text style={styles.coverageSummary}>{item.policy.coverage_summary}</Text>
           </View>
-        )}
-        
-        <View style={styles.policyActions}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="eye" size={16} color={theme.accent} />
-            <Text style={styles.actionButtonText}>View Details</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="download" size={16} color="#666" />
-            <Text style={styles.actionButtonText}>Download</Text>
-          </TouchableOpacity>
+          
+          <View style={styles.policyDetails}>
+            <View style={styles.providerRow}>
+              <Ionicons name="business" size={16} color={theme.accent} />
+              <Text style={styles.providerName}>{item.plan?.provider?.name || "Unknown Provider"}</Text>
+            </View>
+            
+            {item.policy_number && (
+              <View style={styles.policyNumberRow}>
+                <Ionicons name="document-text" size={16} color="#666" />
+                <Text style={styles.policyNumber}>#{item.policy_number}</Text>
+              </View>
+            )}
+            
+            {item.premium_paid && (
+              <View style={styles.premiumRow}>
+                <Ionicons name="card" size={16} color="#4CAF50" />
+                <Text style={styles.premiumPaid}>${item.premium_paid.toFixed(2)} paid</Text>
+              </View>
+            )}
+            
+            {item.start_date && item.end_date && (
+              <View style={styles.coverageRow}>
+                <Ionicons name="calendar" size={16} color="#666" />
+                <Text style={styles.coveragePeriod}>
+                  {new Date(item.start_date).toLocaleDateString()} - {new Date(item.end_date).toLocaleDateString()}
+                </Text>
+              </View>
+            )}
+          </View>
+          
+          {item.plan?.coverage_summary && (
+            <View style={styles.coverageSummaryContainer}>
+              <Text style={styles.coverageSummary}>{item.plan.coverage_summary}</Text>
+            </View>
+          )}
+          
+          <View style={styles.policyActions}>
+            <TouchableOpacity style={styles.actionButton}>
+              <Ionicons name="eye" size={16} color={theme.accent} />
+              <Text style={styles.actionButtonText}>View Details</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton}>
+              <Ionicons name="download" size={16} color="#666" />
+              <Text style={styles.actionButtonText}>Download</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   if (!user) {
     return (
@@ -253,7 +259,7 @@ const PoliciesScreen = () => {
                 </View>
               ) : (
                 <FlatList
-                  data={policies}
+                  data={policies.filter(item => item && item.plan)}
                   keyExtractor={(item) => String(item.user_policy_id)}
                   renderItem={renderPolicyItem}
                   refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadPolicies} />}

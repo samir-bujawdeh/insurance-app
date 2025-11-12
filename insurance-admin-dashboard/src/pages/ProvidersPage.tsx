@@ -15,8 +15,90 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import { getApiBaseUrl } from "@/api/axios";
+
+// Provider Card Component
+function ProviderCard({ 
+  provider, 
+  onEdit, 
+  onDelete 
+}: { 
+  provider: Provider; 
+  onEdit: (provider: Provider) => void;
+  onDelete: (provider: Provider) => void;
+}) {
+  const [logoError, setLogoError] = useState(false);
+  const logoUrl = provider.logo_url
+    ? provider.logo_url.startsWith("http") || provider.logo_url.startsWith("//")
+      ? provider.logo_url
+      : `${getApiBaseUrl()}${provider.logo_url.startsWith("/") ? "" : "/"}${provider.logo_url}`
+    : null;
+
+  return (
+    <div className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+      <div className="flex gap-4">
+        {/* Left side - Provider Info */}
+        <div className="flex-1 min-w-0">
+          {/* Provider Name */}
+          <h3 className="font-semibold text-lg mb-3">{provider.name}</h3>
+          
+          {/* Provider Details */}
+          <div className="space-y-2 mb-4">
+            <p className="text-sm text-muted-foreground">
+              {provider.contact_info || "No contact info"}
+            </p>
+            <p className="text-sm">
+              <span className="font-medium">Rating:</span>{" "}
+              {provider.rating ? (
+                <span className="text-yellow-600">{provider.rating}/5.0</span>
+              ) : (
+                <span className="text-muted-foreground">Not rated</span>
+              )}
+            </p>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-3 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(provider)}
+              className="flex-1"
+            >
+              <Edit className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => onDelete(provider)}
+              className="flex-1"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+          </div>
+        </div>
+        
+        {/* Right side - Logo */}
+        <div className="flex-shrink-0 w-24 h-24 rounded border bg-white p-2 flex items-center justify-center">
+          {logoUrl && !logoError ? (
+            <img
+              src={logoUrl}
+              alt={`${provider.name} logo`}
+              className="h-full w-full object-contain"
+              onError={() => setLogoError(true)}
+            />
+          ) : (
+            <Building2 className="h-12 w-12 text-muted-foreground" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function ProvidersPage() {
   const queryClient = useQueryClient();
@@ -39,20 +121,6 @@ export function ProvidersPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["providers"],
     queryFn: getProviders,
-    placeholderData: [
-      {
-        provider_id: 1,
-        name: "Acme Insurance",
-        contact_info: "1-800-ACME-123",
-        rating: 4.5,
-      },
-      {
-        provider_id: 2,
-        name: "Blue Shield Co.",
-        contact_info: "1-800-BLUE-456",
-        rating: 4.2,
-      },
-    ],
   });
 
   const createMutation = useMutation({
@@ -256,13 +324,16 @@ export function ProvidersPage() {
                   <Label htmlFor="logo_url">Logo URL</Label>
                   <Input
                     id="logo_url"
-                    type="url"
-                    placeholder="https://example.com/logo.png"
+                    type="text"
+                    placeholder="/static/logos/company-logo.png"
                     value={formData.logo_url || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, logo_url: e.target.value })
                     }
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Use relative path: <code className="text-xs">/static/logos/logo-name.png</code> or full URL
+                  </p>
                 </div>
               </div>
               <DialogFooter>
@@ -340,13 +411,16 @@ export function ProvidersPage() {
                 <Label htmlFor="edit-logo_url">Logo URL</Label>
                 <Input
                   id="edit-logo_url"
-                  type="url"
-                  placeholder="https://example.com/logo.png"
+                  type="text"
+                  placeholder="/static/logos/company-logo.png"
                   value={formData.logo_url || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, logo_url: e.target.value })
                   }
                 />
+                <p className="text-xs text-muted-foreground">
+                  Use relative path: <code className="text-xs">/static/logos/logo-name.png</code> or full URL
+                </p>
               </div>
             </div>
             <DialogFooter>
@@ -416,41 +490,12 @@ export function ProvidersPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {data?.map((provider) => (
-                <div key={provider.provider_id} className="p-4 border rounded-lg">
-                  <h3 className="font-semibold">{provider.name}</h3>
-                  <p className="text-sm text-muted-foreground">{provider.contact_info || "No contact info"}</p>
-                  <p className="text-sm">Rating: {provider.rating ? `${provider.rating}/5.0` : "Not rated"}</p>
-                  {provider.logo_url && (
-                    <div className="mt-2">
-                      <img
-                        src={provider.logo_url}
-                        alt={`${provider.name} logo`}
-                        className="h-8 w-auto object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                    </div>
-                  )}
-                  <div className="flex gap-2 mt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(provider)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteClick(provider)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
+                <ProviderCard
+                  key={provider.provider_id}
+                  provider={provider}
+                  onEdit={handleEdit}
+                  onDelete={handleDeleteClick}
+                />
               ))}
             </div>
           )}

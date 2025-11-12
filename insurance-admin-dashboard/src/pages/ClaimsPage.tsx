@@ -29,30 +29,6 @@ export function ClaimsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["claims"],
     queryFn: () => getClaims({ page: 1, page_size: 50 }),
-    placeholderData: {
-      items: [
-        {
-          claim_id: 1,
-          user_policy_id: 1,
-          date_filed: "2024-01-15",
-          claim_amount: 5000,
-          status: "submitted" as const,
-          description: "Auto accident claim",
-        },
-        {
-          claim_id: 2,
-          user_policy_id: 2,
-          date_filed: "2024-01-20",
-          claim_amount: 3000,
-          status: "in_review" as const,
-          description: "Property damage claim",
-        },
-      ],
-      total: 2,
-      page: 1,
-      page_size: 50,
-      total_pages: 1,
-    },
   });
 
   const approveMutation = useMutation({

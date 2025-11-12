@@ -21,7 +21,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Applications", href: "/applications", icon: ClipboardList },
   { name: "Users", href: "/users", icon: Users },
-  { name: "Policies", href: "/policies", icon: FileText },
+  { name: "Plans", href: "/policies", icon: FileText },
   { name: "Tariffs", href: "/tariffs", icon: DollarSign },
   { name: "Plan Criteria", href: "/criteria", icon: CheckSquare },
   { name: "Claims", href: "/claims", icon: ShieldCheck },

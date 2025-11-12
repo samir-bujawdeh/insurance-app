@@ -84,26 +84,6 @@ export function DashboardPage() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["dashboard-stats", startDate, endDate],
     queryFn: () => getDashboardStats({ start_date: startDate, end_date: endDate }),
-    placeholderData: {
-      total_users: 0,
-      active_users: 0,
-      total_policies: 0,
-      active_policies: 0,
-      pending_applications: 0,
-      pending_claims: 0,
-      total_revenue: 0,
-      average_premium: 0,
-      users_growth: 0,
-      policies_growth: 0,
-      revenue_growth: 0,
-      approval_rate: 0,
-      claims_approved: 0,
-      claims_rejected: 0,
-      top_insurance_types: [],
-      top_providers: [],
-      revenue_trend: [],
-      applications_trend: [],
-    },
   });
 
   if (isLoading) {
@@ -190,7 +170,7 @@ export function DashboardPage() {
           icon={UserCheck}
         />
         <StatCard
-          title="Active Policies"
+          title="Active Plans"
           value={stats?.active_policies || 0}
           change={stats?.policies_growth}
           trend={
@@ -329,7 +309,7 @@ export function DashboardPage() {
                   >
                     <span className="text-sm font-medium">{item.name}</span>
                     <span className="text-sm text-muted-foreground">
-                      {item.count} policies
+                      {item.count} plans
                     </span>
                   </div>
                 ))
@@ -357,7 +337,7 @@ export function DashboardPage() {
                   >
                     <span className="text-sm font-medium">{item.name}</span>
                     <span className="text-sm text-muted-foreground">
-                      {item.count} policies
+                      {item.count} plans
                     </span>
                   </div>
                 ))
