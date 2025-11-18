@@ -23,24 +23,29 @@ def my_policies(
 
 @router.post("/purchase", response_model=schemas.UserPolicyOut)
 def purchase_policy(
-    user_id: int,
-    policy_id: int,
-    version_id: Optional[int] = None,
+    request: schemas.PolicyPurchaseRequest,
     db: Session = Depends(get_db)
 ):
     """Purchase a policy (create user policy)"""
     # Verify policy exists
     policy = db.query(models.InsurancePlan).filter(
-        models.InsurancePlan.policy_id == policy_id
+        models.InsurancePlan.policy_id == request.policy_id
     ).first()
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
     
+    # Verify user exists
+    user = db.query(models.User).filter(
+        models.User.user_id == request.user_id
+    ).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
     # Create user policy
     user_policy = models.UserPolicy(
-        user_id=user_id,
-        policy_id=policy_id,
-        version_id=version_id,
+        user_id=request.user_id,
+        policy_id=request.policy_id,
+        version_id=request.version_id,
         status=models.UserPolicyStatus.pending_payment
     )
     db.add(user_policy)

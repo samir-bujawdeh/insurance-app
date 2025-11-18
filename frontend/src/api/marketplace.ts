@@ -70,4 +70,45 @@ export async function getPolicyVersions(policyId: number) {
   return res.data;
 }
 
+// Policy Matching Types
+export interface PolicyMatchCriteria {
+  insurance_class: string; // A/B/C
+  insurance_type: string; // family/individual
+  primary_age: number;
+  family_size?: number;
+  family_ages?: number[];
+}
+
+export interface MatchedTariff {
+  tariff_id: number;
+  policy_id: number;
+  age_min: number;
+  age_max: number;
+  class_type: string;
+  family_type?: string;
+  family_min: number;
+  family_max: number;
+  inpatient_usd?: number;
+  total_usd?: number;
+  outpatient_coverage_percentage?: number;
+  outpatient_price_usd?: number;
+}
+
+export interface OutpatientOption {
+  outpatient_coverage_percentage: number;
+  outpatient_price_usd?: number;
+  tariff_id: number;
+}
+
+export interface MatchedPolicy {
+  policy: InsurancePolicyDetail;
+  matching_tariff: MatchedTariff;
+  outpatient_options: OutpatientOption[];
+}
+
+export async function matchPolicies(criteria: PolicyMatchCriteria): Promise<MatchedPolicy[]> {
+  const res = await api.post("/marketplace/policies/match", criteria);
+  return res.data;
+}
+
 

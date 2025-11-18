@@ -221,6 +221,12 @@ class UserPolicyCreate(BaseModel):
     signed_contract_url: Optional[str] = None
 
 
+class PolicyPurchaseRequest(BaseModel):
+    user_id: int
+    policy_id: int
+    version_id: Optional[int] = None
+
+
 class UserPolicyOut(BaseModel):
     user_policy_id: int
     user_id: int
@@ -464,6 +470,41 @@ class TariffOut(BaseModel):
 
 class TariffBulkCreate(BaseModel):
     tariffs: List[TariffCreate]
+
+
+# Policy Matching Schemas
+class PolicyMatchCriteria(BaseModel):
+    insurance_class: str  # A/B/C
+    insurance_type: str  # family/individual
+    primary_age: int
+    family_size: Optional[int] = None
+    family_ages: Optional[List[int]] = None
+
+
+class MatchedTariffOut(TariffOut):
+    """Tariff with policy info for matching results"""
+    pass
+
+
+class OutpatientOption(BaseModel):
+    """Outpatient coverage option with percentage and additional price"""
+    outpatient_coverage_percentage: float
+    outpatient_price_usd: Optional[float] = None
+    tariff_id: int  # Reference to the tariff entry
+
+    class Config:
+        orm_mode = True
+
+
+class MatchedPolicyOut(BaseModel):
+    """Policy with matching tariff for quote results"""
+    policy: InsurancePlanDetailOut
+    matching_tariff: MatchedTariffOut  # Base tariff (inpatient or base price)
+    outpatient_options: List[OutpatientOption] = []  # All available outpatient options
+
+    class Config:
+        orm_mode = True
+        arbitrary_types_allowed = True
 
 
 # Upload Response Schema

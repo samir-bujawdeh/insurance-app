@@ -11,6 +11,8 @@ import {
   Animated,
   KeyboardAvoidingView,
   Dimensions,
+  ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView as SafeAreaViewContext } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
@@ -18,8 +20,26 @@ import { useAuth } from "../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { matchPolicies, MatchedPolicy } from "../api/marketplace";
+import { purchasePolicy } from "../api/policies";
+import { BASE_URL } from "../api/axios";
 
-type InsuranceClass = "first" | "second" | "third" | "premium" | "";
+// Helper function to get full logo URL
+const getLogoUrl = (logoUrl: string | undefined | null): string | null => {
+  if (!logoUrl) return null;
+  
+  // If it's already a full URL (starts with http:// or https://), return as is
+  if (logoUrl.startsWith("http://") || logoUrl.startsWith("https://")) {
+    return logoUrl;
+  }
+  
+  // If it's a relative path, prepend the API base URL
+  // Remove leading slash if present to avoid double slashes
+  const cleanPath = logoUrl.startsWith("/") ? logoUrl.slice(1) : logoUrl;
+  return `${BASE_URL}/${cleanPath}`;
+};
+
+type InsuranceClass = "A" | "B" | "C" | "";
 type InsuranceType = "family" | "individual" | "";
 
 interface FamilyMemberDOB {
@@ -54,6 +74,19 @@ const HealthQuoteScreen = () => {
 
   // Focus states for inputs
   const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  // Step 2 states - Policy selection
+  const [matchedPolicies, setMatchedPolicies] = useState<MatchedPolicy[]>([]);
+  const [loadingPolicies, setLoadingPolicies] = useState(false);
+  const [expandedProviders, setExpandedProviders] = useState<Set<number>>(new Set());
+  const [selectedPolicy, setSelectedPolicy] = useState<MatchedPolicy | null>(null);
+  // Track selected outpatient options for each policy (key: policy_id, value: tariff_id of selected outpatient option)
+  const [selectedOutpatientOptions, setSelectedOutpatientOptions] = useState<{ [policyId: number]: number | null }>({});
+  // Track card heights for stacked effect (key: providerId, value: height)
+  const [cardHeights, setCardHeights] = useState<{ [providerId: number]: number }>({});
+
+  // Step 3 states - Review
+  const [submittingApplication, setSubmittingApplication] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -263,13 +296,125 @@ const HealthQuoteScreen = () => {
     return true;
   };
 
+  // Calculate age from date of birth
+  const calculateAge = (dob: Date): number => {
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // Fetch matching policies when entering Step 2
+  useEffect(() => {
+    if (currentStep === 2 && primaryMemberDOB && selectedClass && insuranceType) {
+      fetchMatchingPolicies();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep]);
+
+  const fetchMatchingPolicies = async () => {
+    if (!primaryMemberDOB) return;
+
+    setLoadingPolicies(true);
+    try {
+      const primaryAge = calculateAge(primaryMemberDOB);
+      const familyAges = familyMemberDOBs
+        .filter((member) => member.date)
+        .map((member) => calculateAge(member.date!));
+
+      const criteria = {
+        insurance_class: selectedClass,
+        insurance_type: insuranceType,
+        primary_age: primaryAge,
+        family_size: insuranceType === "family" ? parseInt(numberOfFamilyMembers) : undefined,
+        family_ages: insuranceType === "family" && familyAges.length > 0 ? familyAges : undefined,
+      };
+
+      const policies = await matchPolicies(criteria);
+      setMatchedPolicies(policies);
+    } catch (error: any) {
+      console.error("Error fetching matching policies:", error);
+      Alert.alert("Error", error?.response?.data?.detail || "Failed to fetch matching policies");
+    } finally {
+      setLoadingPolicies(false);
+    }
+  };
+
+  const toggleProviderExpansion = (providerId: number) => {
+    setExpandedProviders((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(providerId)) {
+        newSet.delete(providerId);
+      } else {
+        newSet.add(providerId);
+      }
+      return newSet;
+    });
+  };
+
+  const handlePolicySelect = (policy: MatchedPolicy) => {
+    setSelectedPolicy(policy);
+  };
+
+  const handleOutpatientOptionToggle = (policyId: number, tariffId: number) => {
+    setSelectedOutpatientOptions((prev) => {
+      const current = prev[policyId];
+      // If this option is already selected, deselect it; otherwise, select it
+      return {
+        ...prev,
+        [policyId]: current === tariffId ? null : tariffId,
+      };
+    });
+  };
+
   const handleProceed = () => {
     if (currentStep === 1) {
       if (validateStep1()) {
         setCurrentStep(2);
       }
     } else if (currentStep === 2) {
+      if (!selectedPolicy) {
+        Alert.alert("Selection Required", "Please select a policy to continue");
+        return;
+      }
       setCurrentStep(3);
+    } else if (currentStep === 3) {
+      handleApplyForInsurance();
+    }
+  };
+
+  const handleApplyForInsurance = async () => {
+    if (!selectedPolicy || !user) {
+      Alert.alert("Error", "Missing required information");
+      return;
+    }
+
+    setSubmittingApplication(true);
+    try {
+      const result = await purchasePolicy(user.user_id, selectedPolicy.policy.policy_id);
+      console.log("Policy purchase successful:", result);
+      Alert.alert(
+        "Success",
+        "Your insurance application has been submitted successfully!",
+        [
+          {
+            text: "OK",
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error("Error applying for insurance:", error);
+      const errorMessage = 
+        error?.response?.data?.detail || 
+        error?.message || 
+        "Failed to submit application. Please try again.";
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setSubmittingApplication(false);
     }
   };
 
@@ -659,10 +804,9 @@ const HealthQuoteScreen = () => {
                 "Select Insurance Class",
                 selectedClass,
                 [
-                  { label: "First Class", value: "first" },
-                  { label: "Second Class", value: "second" },
-                  { label: "Third Class", value: "third" },
-                  { label: "Premium Class", value: "premium" },
+                  { label: "Class A", value: "A" },
+                  { label: "Class B", value: "B" },
+                  { label: "Class C", value: "C" },
                 ],
                 (value) => handleClassSelect(value as InsuranceClass),
                 "shield-outline",
@@ -754,29 +898,403 @@ const HealthQuoteScreen = () => {
     );
   };
 
-  const renderStep2 = () => {
+  // Group policies by provider
+  const groupPoliciesByProvider = (policies: MatchedPolicy[]) => {
+    const grouped: { [key: number]: MatchedPolicy[] } = {};
+    policies.forEach((policy) => {
+      const providerId = policy.policy.provider.provider_id;
+      if (!grouped[providerId]) {
+        grouped[providerId] = [];
+      }
+      grouped[providerId].push(policy);
+    });
+    return grouped;
+  };
+
+  const renderPolicyCard = (policy: MatchedPolicy, isSelected: boolean) => {
+    const tariff = policy.matching_tariff;
+    const premium = tariff.total_usd || tariff.inpatient_usd || 0;
+    const selectedOutpatientTariffId = selectedOutpatientOptions[policy.policy.policy_id] || null;
+    const selectedOutpatientOption = policy.outpatient_options.find(
+      opt => opt.tariff_id === selectedOutpatientTariffId
+    );
+    const totalPrice = premium + (selectedOutpatientOption?.outpatient_price_usd || 0);
+
     return (
-      <View style={styles.placeholderContainer}>
-        <Ionicons name="document-text-outline" size={64} color={theme.textSecondary} />
-        <Text style={styles.placeholderTitle}>Policy Selection</Text>
-        <Text style={styles.placeholderSubtitle}>Coming Soon</Text>
-        <Text style={styles.placeholderDescription}>
-          This screen will show matching insurance plans with quotations based on your information.
-        </Text>
+      <TouchableOpacity
+        key={`${policy.policy.policy_id}-${tariff.tariff_id}`}
+        style={[
+          styles.policyCard,
+          isSelected && styles.policyCardSelected,
+        ]}
+        onPress={() => handlePolicySelect(policy)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.policyCardHeader}>
+          <View style={styles.policyCardTitleRow}>
+            <Text style={styles.policyCardTitle}>{policy.policy.name}</Text>
+            {isSelected && (
+              <Ionicons name="checkmark-circle" size={24} color={theme.buttonPrimary} />
+            )}
+          </View>
+          {getLogoUrl(policy.policy.provider.logo_url) && (
+            <Image
+              source={{ uri: getLogoUrl(policy.policy.provider.logo_url)! }}
+              style={styles.providerLogo}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+
+        <Text style={styles.providerName}>{policy.policy.provider.name}</Text>
+
+        {policy.policy.description && (
+          <Text style={styles.policyDescription} numberOfLines={2}>
+            {policy.policy.description}
+          </Text>
+        )}
+
+        <View style={styles.policyCardFooter}>
+          <View style={styles.premiumContainer}>
+            <Text style={styles.premiumLabel}>Premium</Text>
+            <Text style={styles.premiumAmount}>${totalPrice.toFixed(2)}</Text>
+          </View>
+          {policy.policy.duration && (
+            <Text style={styles.durationText}>{policy.policy.duration}</Text>
+          )}
+        </View>
+        {selectedOutpatientOption && (
+          <Text style={styles.premiumBreakdown}>
+            (Base: ${premium.toFixed(2)} + Outpatient: +${selectedOutpatientOption.outpatient_price_usd?.toFixed(2) || '0.00'})
+          </Text>
+        )}
+
+        {/* Outpatient Options as Add-ons */}
+        {policy.outpatient_options.length > 0 && (
+          <View style={styles.outpatientOptionsContainer}>
+            <Text style={styles.outpatientOptionsTitle}>Outpatient Coverage (Add-ons):</Text>
+            <View style={styles.outpatientOptionsList}>
+              {policy.outpatient_options.map((option) => {
+                const isSelected = selectedOutpatientTariffId === option.tariff_id;
+                return (
+                  <TouchableOpacity
+                    key={option.tariff_id}
+                    style={[
+                      styles.outpatientOptionItem,
+                      isSelected && styles.outpatientOptionItemSelected,
+                    ]}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleOutpatientOptionToggle(policy.policy.policy_id, option.tariff_id);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.outpatientOptionContent}>
+                      <View style={[
+                        styles.outpatientOptionCheckbox,
+                        isSelected && styles.outpatientOptionCheckboxSelected,
+                      ]}>
+                        {isSelected && (
+                          <Ionicons name="checkmark" size={16} color={theme.textInverse} />
+                        )}
+                      </View>
+                      <Text style={styles.outpatientOptionText}>
+                        {(option.outpatient_coverage_percentage * 100).toFixed(0)}% Coverage
+                      </Text>
+                    </View>
+                    {option.outpatient_price_usd !== undefined && option.outpatient_price_usd !== null && (
+                      <Text style={styles.outpatientOptionPrice}>
+                        +${option.outpatient_price_usd.toFixed(2)}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const renderProviderSection = (providerId: number, policies: MatchedPolicy[]) => {
+    const isExpanded = expandedProviders.has(providerId);
+    const provider = policies[0].policy.provider;
+    const visiblePolicies = isExpanded ? policies : [policies[0]];
+    const hasMore = policies.length > 1;
+    const hiddenCount = policies.length - 1;
+    // Show stacked cards (max 3) when collapsed
+    const stackedCardsCount = !isExpanded && hasMore ? Math.min(hiddenCount, 3) : 0;
+
+    return (
+      <View key={providerId} style={styles.providerSection}>
+        <View style={styles.providerHeader}>
+          <View style={styles.providerHeaderLeft}>
+            {getLogoUrl(provider.logo_url) && (
+              <Image
+                source={{ uri: getLogoUrl(provider.logo_url)! }}
+                style={styles.providerHeaderLogo}
+                resizeMode="contain"
+              />
+            )}
+            <View>
+              <Text style={styles.providerHeaderName}>{provider.name}</Text>
+              {provider.rating && (
+                <View style={styles.ratingContainer}>
+                  <Ionicons name="star" size={14} color="#FFB800" />
+                  <Text style={styles.ratingText}>{provider.rating.toFixed(1)}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+          {hasMore && (
+            <TouchableOpacity
+              style={styles.showMoreButton}
+              onPress={() => toggleProviderExpansion(providerId)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.showMoreText}>
+                {isExpanded ? "Show Less" : `Show More (${policies.length - 1})`}
+              </Text>
+              <Ionicons
+                name={isExpanded ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={theme.buttonPrimary}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {!isExpanded ? (
+          // Render only the main card when collapsed
+          <View style={styles.policiesContainer}>
+            {renderPolicyCard(
+              visiblePolicies[0],
+              selectedPolicy?.policy.policy_id === visiblePolicies[0].policy.policy_id
+            )}
+          </View>
+        ) : (
+          // Render normally when expanded
+          <View style={styles.policiesContainer}>
+            {visiblePolicies.map((policy) =>
+              renderPolicyCard(policy, selectedPolicy?.policy.policy_id === policy.policy.policy_id)
+            )}
+          </View>
+        )}
       </View>
     );
   };
 
-  const renderStep3 = () => {
+  const renderStep2 = () => {
+    if (loadingPolicies) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.buttonPrimary} />
+          <Text style={styles.loadingText}>Finding matching policies...</Text>
+        </View>
+      );
+    }
+
+    if (matchedPolicies.length === 0) {
+      return (
+        <View style={styles.placeholderContainer}>
+          <Ionicons name="search-outline" size={64} color={theme.textSecondary} />
+          <Text style={styles.placeholderTitle}>No Matching Policies</Text>
+          <Text style={styles.placeholderDescription}>
+            We couldn't find any policies that match your criteria. Please try adjusting your search parameters.
+          </Text>
+        </View>
+      );
+    }
+
+    const groupedPolicies = groupPoliciesByProvider(matchedPolicies);
+    const providerIds = Object.keys(groupedPolicies)
+      .map(Number)
+      .sort((a, b) => {
+        const providerA = groupedPolicies[a][0].policy.provider;
+        const providerB = groupedPolicies[b][0].policy.provider;
+        return (providerB.rating || 0) - (providerA.rating || 0); // Sort by rating descending
+      });
+
     return (
-      <View style={styles.placeholderContainer}>
-        <Ionicons name="checkmark-circle-outline" size={64} color={theme.textSecondary} />
-        <Text style={styles.placeholderTitle}>Policy Review</Text>
-        <Text style={styles.placeholderSubtitle}>Coming Soon</Text>
-        <Text style={styles.placeholderDescription}>
-          Review your chosen policy details and apply for insurance.
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.step2Content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.sectionTitle}>Available Policies</Text>
+        <Text style={styles.sectionSubtitle}>
+          Select a policy that best fits your needs
         </Text>
-      </View>
+
+        {providerIds.map((providerId) =>
+          renderProviderSection(providerId, groupedPolicies[providerId])
+        )}
+      </ScrollView>
+    );
+  };
+
+  const renderStep3 = () => {
+    if (!selectedPolicy) {
+      return (
+        <View style={styles.placeholderContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color={theme.textSecondary} />
+          <Text style={styles.placeholderTitle}>No Policy Selected</Text>
+          <Text style={styles.placeholderDescription}>
+            Please go back and select a policy.
+          </Text>
+        </View>
+      );
+    }
+
+    const tariff = selectedPolicy.matching_tariff;
+    const premium = tariff.total_usd || tariff.inpatient_usd || 0;
+    const primaryAge = primaryMemberDOB ? calculateAge(primaryMemberDOB) : 0;
+    const selectedOutpatientTariffId = selectedOutpatientOptions[selectedPolicy.policy.policy_id] || null;
+    const selectedOutpatientOption = selectedPolicy.outpatient_options.find(
+      opt => opt.tariff_id === selectedOutpatientTariffId
+    );
+    const totalPrice = premium + (selectedOutpatientOption?.outpatient_price_usd || 0);
+
+    return (
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.step3Content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.sectionTitle}>Review Your Application</Text>
+        <Text style={styles.sectionSubtitle}>
+          Please review all information before submitting
+        </Text>
+
+        {/* User Information Section */}
+        <View style={styles.reviewSection}>
+          <Text style={styles.reviewSectionTitle}>Your Information</Text>
+          <View style={styles.reviewItem}>
+            <Text style={styles.reviewLabel}>Name</Text>
+            <Text style={styles.reviewValue}>{user?.name || "N/A"}</Text>
+          </View>
+          <View style={styles.reviewItem}>
+            <Text style={styles.reviewLabel}>Email</Text>
+            <Text style={styles.reviewValue}>{user?.email || "N/A"}</Text>
+          </View>
+          <View style={styles.reviewItem}>
+            <Text style={styles.reviewLabel}>Phone</Text>
+            <Text style={styles.reviewValue}>{user?.phone || "N/A"}</Text>
+          </View>
+          <View style={styles.reviewItem}>
+            <Text style={styles.reviewLabel}>Insurance Class</Text>
+            <Text style={styles.reviewValue}>
+              Class {selectedClass}
+            </Text>
+          </View>
+          <View style={styles.reviewItem}>
+            <Text style={styles.reviewLabel}>Coverage Type</Text>
+            <Text style={styles.reviewValue}>
+              {insuranceType === "family" ? "Family Coverage" : "Individual Coverage"}
+            </Text>
+          </View>
+          {insuranceType === "family" && (
+            <View style={styles.reviewItem}>
+              <Text style={styles.reviewLabel}>Family Members</Text>
+              <Text style={styles.reviewValue}>{numberOfFamilyMembers}</Text>
+            </View>
+          )}
+          <View style={styles.reviewItem}>
+            <Text style={styles.reviewLabel}>Primary Member Age</Text>
+            <Text style={styles.reviewValue}>{primaryAge} years</Text>
+          </View>
+          {insuranceType === "family" && familyMemberDOBs.length > 0 && (
+            <View style={styles.reviewItem}>
+              <Text style={styles.reviewLabel}>Family Member Ages</Text>
+              <Text style={styles.reviewValue}>
+                {familyMemberDOBs
+                  .filter((m) => m.date)
+                  .map((m) => calculateAge(m.date!))
+                  .join(", ")} years
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Policy Details Section */}
+        <View style={styles.reviewSection}>
+          <Text style={styles.reviewSectionTitle}>Selected Policy</Text>
+          <View style={styles.policyReviewCard}>
+            <View style={styles.policyReviewHeader}>
+              {getLogoUrl(selectedPolicy.policy.provider.logo_url) && (
+                <Image
+                  source={{ uri: getLogoUrl(selectedPolicy.policy.provider.logo_url)! }}
+                  style={styles.policyReviewLogo}
+                  resizeMode="contain"
+                />
+              )}
+              <View style={styles.policyReviewHeaderText}>
+                <Text style={styles.policyReviewName}>{selectedPolicy.policy.name}</Text>
+                <Text style={styles.policyReviewProvider}>
+                  {selectedPolicy.policy.provider.name}
+                </Text>
+              </View>
+            </View>
+
+            {selectedPolicy.policy.description && (
+              <Text style={styles.policyReviewDescription}>
+                {selectedPolicy.policy.description}
+              </Text>
+            )}
+
+            <View style={styles.policyReviewDetails}>
+              <View style={styles.policyReviewDetailItem}>
+                <Text style={styles.policyReviewDetailLabel}>Class Type</Text>
+                <Text style={styles.policyReviewDetailValue}>
+                  {tariff.class_type.toUpperCase()}
+                </Text>
+              </View>
+              {selectedPolicy.policy.duration && (
+                <View style={styles.policyReviewDetailItem}>
+                  <Text style={styles.policyReviewDetailLabel}>Duration</Text>
+                  <Text style={styles.policyReviewDetailValue}>
+                    {selectedPolicy.policy.duration}
+                  </Text>
+                </View>
+              )}
+              {selectedOutpatientOption && (
+                <View style={styles.policyReviewDetailItem}>
+                  <Text style={styles.policyReviewDetailLabel}>Outpatient Coverage</Text>
+                  <Text style={styles.policyReviewDetailValue}>
+                    {(selectedOutpatientOption.outpatient_coverage_percentage * 100).toFixed(0)}%
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* Cost Breakdown Section */}
+        <View style={styles.reviewSection}>
+          <Text style={styles.reviewSectionTitle}>Cost Breakdown</Text>
+          <View style={styles.costBreakdown}>
+            <View style={styles.costRow}>
+              <Text style={styles.costLabel}>Base Premium</Text>
+              <Text style={styles.costValue}>${premium.toFixed(2)}</Text>
+            </View>
+            {selectedOutpatientOption && selectedOutpatientOption.outpatient_price_usd && selectedOutpatientOption.outpatient_price_usd > 0 && (
+              <View style={styles.costRow}>
+                <Text style={styles.costLabel}>
+                  Outpatient Coverage ({(selectedOutpatientOption.outpatient_coverage_percentage * 100).toFixed(0)}%)
+                </Text>
+                <Text style={styles.costValue}>+${selectedOutpatientOption.outpatient_price_usd.toFixed(2)}</Text>
+              </View>
+            )}
+            <View style={[styles.costRow, styles.costRowTotal]}>
+              <Text style={styles.costLabelTotal}>Total</Text>
+              <Text style={styles.costValueTotal}>
+                ${totalPrice.toFixed(2)}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
     );
   };
 
@@ -816,16 +1334,31 @@ const HealthQuoteScreen = () => {
           <TouchableOpacity
             style={[
               styles.proceedButton,
-              currentStep === 1 && !isStep1Valid() && styles.proceedButtonDisabled,
+              (currentStep === 1 && !isStep1Valid()) && styles.proceedButtonDisabled,
+              (currentStep === 2 && !selectedPolicy) && styles.proceedButtonDisabled,
+              submittingApplication && styles.proceedButtonDisabled,
             ]}
             onPress={handleProceed}
-            disabled={currentStep === 1 && !isStep1Valid()}
+            disabled={
+              (currentStep === 1 && !isStep1Valid()) ||
+              (currentStep === 2 && !selectedPolicy) ||
+              submittingApplication
+            }
             activeOpacity={0.8}
           >
-            <Text style={styles.proceedButtonText}>
-              {currentStep === 3 ? "Apply for Insurance" : "Proceed"}
-            </Text>
-            <Ionicons name="arrow-forward" size={20} color={theme.textInverse} />
+            {submittingApplication ? (
+              <>
+                <ActivityIndicator size="small" color={theme.textInverse} />
+                <Text style={styles.proceedButtonText}>Submitting...</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.proceedButtonText}>
+                  {currentStep === 3 ? "Apply for Insurance" : "Proceed"}
+                </Text>
+                <Ionicons name="arrow-forward" size={20} color={theme.textInverse} />
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -1190,6 +1723,415 @@ const HealthQuoteScreenStyles = (theme: any, isDark: boolean) =>
       color: theme.textInverse,
       fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
       letterSpacing: 0.5,
+    },
+    // Step 2 Styles
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 40,
+    },
+    loadingText: {
+      marginTop: 16,
+      fontSize: 16,
+      color: theme.textSecondary,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    step2Content: {
+      padding: 24,
+      paddingBottom: 100,
+    },
+    providerSection: {
+      marginBottom: 32,
+    },
+    providerHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderLight,
+    },
+    providerHeaderLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+    },
+    providerHeaderLogo: {
+      width: 40,
+      height: 40,
+      marginRight: 12,
+    },
+    providerHeaderName: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: theme.text,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+      marginBottom: 4,
+    },
+    ratingContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    ratingText: {
+      fontSize: 14,
+      color: theme.textSecondary,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    showMoreButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+    },
+    showMoreText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.buttonPrimary,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    policiesContainer: {
+      gap: 16,
+    },
+    stackedCardsContainer: {
+      position: "relative",
+      marginBottom: 12,
+      paddingTop: 12, // Space for upward offset of stacked cards
+      paddingRight: 18, // Space for right offset of stacked cards (doesn't affect centering)
+    },
+    stackedCard: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: theme.borderLight,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 1,
+    },
+    stackedCardTop: {
+      position: "relative",
+      zIndex: 10, // Main card is on top
+      width: "100%", // Ensure full width for centering
+    },
+    policyCard: {
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 2,
+      borderColor: theme.borderLight,
+      marginBottom: 12,
+    },
+    policyCardSelected: {
+      borderColor: theme.buttonPrimary,
+      backgroundColor: isDark
+        ? "rgba(59, 130, 246, 0.1)"
+        : "rgba(59, 130, 246, 0.05)",
+    },
+    policyCardHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 8,
+    },
+    policyCardTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+      gap: 8,
+    },
+    policyCardTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: theme.text,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+      flex: 1,
+    },
+    providerLogo: {
+      width: 50,
+      height: 50,
+    },
+    providerName: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: theme.textSecondary,
+      marginBottom: 8,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    policyDescription: {
+      fontSize: 14,
+      color: theme.textTertiary,
+      marginBottom: 12,
+      lineHeight: 20,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    policyCardFooter: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 8,
+    },
+    premiumContainer: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      gap: 8,
+    },
+    premiumLabel: {
+      fontSize: 14,
+      color: theme.textSecondary,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    premiumAmount: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: theme.buttonPrimary,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    durationText: {
+      fontSize: 12,
+      color: theme.textTertiary,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    outpatientBadge: {
+      marginTop: 8,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      backgroundColor: isDark
+        ? "rgba(34, 197, 94, 0.2)"
+        : "rgba(34, 197, 94, 0.1)",
+      borderRadius: 6,
+      alignSelf: "flex-start",
+    },
+    outpatientText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: "#22c55e",
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    outpatientOptionsContainer: {
+      marginTop: 16,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: theme.borderLight,
+    },
+    outpatientOptionsTitle: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.text,
+      marginBottom: 12,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    outpatientOptionsList: {
+      gap: 8,
+    },
+    outpatientOptionItem: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.borderLight,
+      backgroundColor: theme.inputBackground,
+    },
+    outpatientOptionItemSelected: {
+      borderColor: theme.buttonPrimary,
+      backgroundColor: isDark
+        ? "rgba(59, 130, 246, 0.1)"
+        : "rgba(59, 130, 246, 0.05)",
+    },
+    outpatientOptionContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+    },
+    outpatientOptionCheckbox: {
+      width: 20,
+      height: 20,
+      borderRadius: 4,
+      borderWidth: 2,
+      borderColor: theme.borderMedium,
+      marginRight: 12,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: theme.card,
+    },
+    outpatientOptionCheckboxSelected: {
+      backgroundColor: theme.buttonPrimary,
+      borderColor: theme.buttonPrimary,
+    },
+    outpatientOptionText: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: theme.text,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    outpatientOptionPrice: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.buttonPrimary,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    premiumBreakdown: {
+      fontSize: 11,
+      color: theme.textTertiary,
+      marginTop: 8,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+      textAlign: "left",
+    },
+    // Step 3 Styles
+    step3Content: {
+      padding: 24,
+      paddingBottom: 100,
+    },
+    reviewSection: {
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: theme.borderLight,
+    },
+    reviewSectionTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: theme.text,
+      marginBottom: 16,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    reviewItem: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderLight,
+    },
+    reviewLabel: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: theme.textSecondary,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    reviewValue: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.text,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+      textAlign: "right",
+      flex: 1,
+      marginLeft: 16,
+    },
+    policyReviewCard: {
+      backgroundColor: isDark
+        ? "rgba(59, 130, 246, 0.1)"
+        : "rgba(59, 130, 246, 0.05)",
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.buttonPrimary,
+    },
+    policyReviewHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 12,
+    },
+    policyReviewLogo: {
+      width: 50,
+      height: 50,
+      marginRight: 12,
+    },
+    policyReviewHeaderText: {
+      flex: 1,
+    },
+    policyReviewName: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: theme.text,
+      marginBottom: 4,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    policyReviewProvider: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: theme.textSecondary,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    policyReviewDescription: {
+      fontSize: 14,
+      color: theme.textTertiary,
+      lineHeight: 20,
+      marginBottom: 16,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    policyReviewDetails: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 16,
+    },
+    policyReviewDetailItem: {
+      flex: 1,
+      minWidth: "45%",
+    },
+    policyReviewDetailLabel: {
+      fontSize: 12,
+      fontWeight: "500",
+      color: theme.textSecondary,
+      marginBottom: 4,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    policyReviewDetailValue: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: theme.text,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    costBreakdown: {
+      gap: 12,
+    },
+    costRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 8,
+    },
+    costLabel: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: theme.textSecondary,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    costValue: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: theme.text,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    costRowTotal: {
+      borderTopWidth: 2,
+      borderTopColor: theme.borderMedium,
+      paddingTop: 16,
+      marginTop: 8,
+    },
+    costLabelTotal: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: theme.text,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+    },
+    costValueTotal: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: theme.buttonPrimary,
+      fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
     },
   });
 

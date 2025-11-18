@@ -6,41 +6,10 @@ from app.routes import marketplace_routes, policy_routes, claims_routes, notific
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, Base, engine, DB_URL_EFFECTIVE, DB_DIALECT
 from sqlalchemy import text
+from contextlib import asynccontextmanager
 import os
 
 
-
-
-app = FastAPI(title="The Insurance App API")
-
-# ✅ Enable CORS for all origins (adjust later for production)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],           # you can restrict this to your domains later
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(auth_routes.router)
-app.include_router(marketplace_routes.router)
-app.include_router(policy_routes.router)
-app.include_router(claims_routes.router)
-app.include_router(notifications_routes.router)
-app.include_router(document_routes.router)
-app.include_router(admin_routes.router)
-
-# Mount static files directory for logos and other static assets
-static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-@app.get("/")
-def root():
-    return {"message": "Welcome to The Insurance App"}
-
-
-@app.on_event("startup")
 def init_database():
     """
     Initialize database schema and ensure required columns exist.
@@ -192,6 +161,47 @@ def init_database():
         db.rollback()
     finally:
         db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for startup and shutdown events.
+    Handles database initialization on startup.
+    """
+    # Startup
+    init_database()
+    yield
+    # Shutdown (if needed, add cleanup here)
+
+
+app = FastAPI(title="The Insurance App API", lifespan=lifespan)
+
+# ✅ Enable CORS for all origins (adjust later for production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],           # you can restrict this to your domains later
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth_routes.router)
+app.include_router(marketplace_routes.router)
+app.include_router(policy_routes.router)
+app.include_router(claims_routes.router)
+app.include_router(notifications_routes.router)
+app.include_router(document_routes.router)
+app.include_router(admin_routes.router)
+
+# Mount static files directory for logos and other static assets
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+@app.get("/")
+def root():
+    return {"message": "Welcome to The Insurance App"}
 
 
 @app.get("/_health/db")

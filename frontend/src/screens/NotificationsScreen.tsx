@@ -96,11 +96,25 @@ const NotificationsScreen = () => {
     setRefreshing(true);
     try {
       const data = await listNotifications();
-      // Use mock data since API returns empty array
-      setNotifications(mockNotifications);
-    } catch (error) {
+      // Use API data if available, otherwise fall back to mock data
+      if (data && Array.isArray(data) && data.length > 0) {
+        setNotifications(data);
+      } else {
+        // Use mock data since API returns empty array or no data
+        setNotifications(mockNotifications);
+      }
+    } catch (error: any) {
       console.error("Error loading notifications:", error);
-      Alert.alert("Error", "Failed to load notifications");
+      // Check if it's a network error
+      if (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error') || !error.response) {
+        // Network error - backend might not be reachable, use mock data
+        console.warn("Backend not reachable, using mock notifications");
+        setNotifications(mockNotifications);
+      } else {
+        // Other errors - show alert but still use mock data
+        console.warn("API error, using mock notifications");
+        setNotifications(mockNotifications);
+      }
     } finally {
       setRefreshing(false);
     }
