@@ -10,7 +10,7 @@ import axios from "axios";
  * For local development: VITE_API_BASE_URL=http://localhost:8000
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://192.168.3.11:8000",
   // withCredentials removed - we use localStorage for tokens, not cookies
   headers: {
     "Content-Type": "application/json",
@@ -48,5 +48,5 @@ export default api;
 
 // Get the API base URL for constructing full URLs (e.g., for static assets)
 export const getApiBaseUrl = () => {
-  return import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+  return import.meta.env.VITE_API_BASE_URL || "http://192.168.3.11:8000";
 };

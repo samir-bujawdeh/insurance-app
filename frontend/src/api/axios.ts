@@ -7,7 +7,7 @@ import * as SecureStore from "expo-secure-store";
 // On Mac/Linux: Run `ifconfig` or `ip addr` and look for your local IP
 // For Android emulator, use: http://10.0.2.2:8000
 // For iOS simulator, use: http://localhost:8000
-export const BASE_URL = (process.env.EXPO_PUBLIC_API_URL as string) ?? "http://192.168.3.3:8000";
+export const BASE_URL = (process.env.EXPO_PUBLIC_API_URL as string) ?? "http://192.168.3.11:8000";
 
 const api = axios.create({
   baseURL: BASE_URL,

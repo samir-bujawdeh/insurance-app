@@ -19,7 +19,7 @@ This folder contains company/provider logo images that are served by the backend
 ## Access from Mobile App
 
 The mobile app can access these logos through the backend API:
-- The mobile app's API base URL (e.g., `http://192.168.3.2:8000`) + `/static/logos/your-logo.png`
+- The mobile app's API base URL (e.g., `http://192.168.3.11:8000`) + `/static/logos/your-logo.png`
 - Since the logo_url is stored in the database, the mobile app will automatically use the correct URL when fetching provider data
 
 ## Access from Admin Dashboard
