@@ -115,16 +115,16 @@ const ClaimsScreen = () => {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "approved":
-        return "#4CAF50";
+        return theme.success;
       case "pending":
-        return "#FF9800";
+        return theme.warning;
       case "rejected":
       case "denied":
-        return "#F44336";
+        return theme.error;
       case "processing":
-        return "#2196F3";
+        return theme.info;
       default:
-        return "#666";
+        return theme.textTertiary;
     }
   };
 
@@ -180,7 +180,7 @@ const ClaimsScreen = () => {
         <View style={styles.claimDetails}>
           {item.claim_amount && (
             <View style={styles.amountRow}>
-              <Ionicons name="cash" size={16} color="#4CAF50" />
+              <Ionicons name="cash" size={16} color={theme.success} />
               <Text style={styles.amountLabel}>Claim Amount:</Text>
               <Text style={styles.amountValue}>${item.claim_amount.toLocaleString()}</Text>
             </View>
@@ -488,7 +488,7 @@ const ClaimsScreenStyles = (theme: any) => StyleSheet.create({
   },
   amountValue: {
     fontSize: 16,
-    color: "#4CAF50",
+    color: theme.success,
     fontWeight: "600",
     marginLeft: "auto",
   },

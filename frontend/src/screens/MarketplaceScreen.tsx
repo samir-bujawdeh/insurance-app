@@ -55,12 +55,19 @@ const MarketplaceScreen = () => {
 
   const renderCategoryCard = ({ item }: { item: InsuranceCategory }) => (
     <TouchableOpacity
-      style={[styles.categoryCard, { backgroundColor: theme.actionCard }]}
+      style={[styles.categoryCard, { backgroundColor: '#F2F2F2' }]}
       onPress={() => handleCategoryPress(item)}
       activeOpacity={0.7}
     >
-      <View style={[styles.iconContainer, { backgroundColor: item.iconColor + "15" }]}>
-        <Ionicons name={item.icon} size={24} color={item.iconColor} />
+      <View style={styles.iconContainer}>
+        <LinearGradient
+          colors={[item.iconColor + "15", item.iconColor + "08"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.iconGradient}
+        >
+          <Ionicons name={item.icon} size={24} color={item.iconColor} />
+        </LinearGradient>
       </View>
       <View style={styles.textContainer}>
         <Text style={styles.categoryName}>{item.name}</Text>
@@ -187,8 +194,6 @@ const MarketplaceScreenStyles = (theme: any) => StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.borderLight,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -202,6 +207,13 @@ const MarketplaceScreenStyles = (theme: any) => StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    overflow: "hidden",
+  },
+  iconGradient: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   textContainer: {
     flex: 1,

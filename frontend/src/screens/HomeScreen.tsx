@@ -205,7 +205,7 @@ const NeumorphicActionCard = React.memo(
             <View style={styles.cardContent}>
               <Animated.View style={[styles.iconContainer, iconAnimatedStyle]}>
                 <LinearGradient
-                  colors={[color + "20", color + "10"]}
+                  colors={[color + "15", color + "08"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.iconGradient}
@@ -381,25 +381,6 @@ const BannerCarousel = React.memo(() => {
     new Animated.Value(8),
   ]).current;
 
-  useEffect(() => {
-    // Entrance animation
-    Animated.parallel([
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 700,
-        delay: 400,
-        useNativeDriver: true,
-      }),
-      Animated.spring(translateYAnim, {
-        toValue: 0,
-        tension: 100,
-        friction: 8,
-        delay: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
   const ads = [
     {
       title: "Compare Feature",
@@ -430,11 +411,31 @@ const BannerCarousel = React.memo(() => {
       icon: "pricetag",
       backgroundColor: "#E8F5E9",
       textColor: "#2E7D32",
-      iconColor: "#4CAF50",
-      buttonColor: "#4CAF50",
+      iconColor: theme.success,
+      buttonColor: theme.success,
       onPress: () => navigation.navigate("Main", { screen: "Policies" }),
     },
   ];
+
+  useEffect(() => {
+    // Entrance animation
+    Animated.parallel([
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 700,
+        delay: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(translateYAnim, {
+        toValue: 0,
+        tension: 100,
+        friction: 8,
+        delay: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -893,17 +894,17 @@ const HomeScreen = () => {
                 activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={['#ECFDF5', '#D1FAE5']}
+                  colors={['#E0F2FE', '#BAE6FD']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.quickTileGradient}
                 >
                   <View style={styles.quickTileContent}>
-                    <View style={[styles.quickTileIconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
-                      <Ionicons name="shield-checkmark" size={20} color="#10B981" />
+                    <View style={[styles.quickTileIconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
+                      <Ionicons name="shield-checkmark" size={20} color="#3B82F6" />
                     </View>
-                    <Text style={[styles.quickTileTitle, { color: '#10B981' }]}>{activePoliciesCount}</Text>
-                    <Text style={[styles.quickTileSubtitle, { color: '#34D399' }]}>Active Policies</Text>
+                    <Text style={[styles.quickTileTitle, { color: '#3B82F6' }]}>{activePoliciesCount}</Text>
+                    <Text style={[styles.quickTileSubtitle, { color: '#60A5FA' }]}>Active Policies</Text>
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -1223,7 +1224,7 @@ const getNeumorphicCardStyles = (theme: any, isDark: boolean, color: string) => 
   card: {
     flex: 1,
     borderRadius: 20,
-    backgroundColor: isDark ? '#2A2A2D' : '#F5F5F5',
+    backgroundColor: isDark ? '#2A2A2D' : '#F2F2F2',
     position: 'relative',
     overflow: 'hidden',
   },

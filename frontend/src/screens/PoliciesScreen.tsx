@@ -78,13 +78,13 @@ const PoliciesScreen = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "#4CAF50";
+        return theme.success;
       case "pending_payment":
-        return "#FF9800";
+        return theme.warning;
       case "expired":
-        return "#F44336";
+        return theme.error;
       default:
-        return "#666";
+        return theme.textTertiary;
     }
   };
 
@@ -144,7 +144,7 @@ const PoliciesScreen = () => {
             
             {item.premium_paid && (
               <View style={styles.premiumRow}>
-                <Ionicons name="card" size={16} color="#4CAF50" />
+                <Ionicons name="card" size={16} color={theme.success} />
                 <Text style={styles.premiumPaid}>${item.premium_paid.toFixed(2)} paid</Text>
               </View>
             )}
@@ -486,7 +486,7 @@ const PoliciesScreenStyles = (theme: any) => StyleSheet.create({
   },
   premiumPaid: {
     fontSize: 13,
-    color: "#4CAF50",
+    color: theme.success,
     fontWeight: "500",
   },
   coverageRow: {

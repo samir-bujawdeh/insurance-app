@@ -192,14 +192,14 @@ const NotificationsScreen = () => {
   const getNotificationColor = (type: string) => {
     switch (type) {
       case "success":
-        return "#4CAF50";
+        return theme.success;
       case "warning":
-        return "#FF9800";
+        return theme.warning;
       case "error":
-        return "#F44336";
+        return theme.error;
       case "info":
       default:
-        return "#2196F3";
+        return theme.info;
     }
   };
 
@@ -543,7 +543,7 @@ const NotificationsScreenStyles = (theme: any) => StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    color: "#007AFF",
+    color: theme.accent,
     fontWeight: "600",
   },
   bottomWhiteSection: {
